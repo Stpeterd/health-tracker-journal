@@ -6,6 +6,8 @@ const HealthTrackerApp = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedMetric, setSelectedMetric] = useState('weight');
   const [showAddData, setShowAddData] = useState(false);
+  const [currentDashboardCard, setCurrentDashboardCard] = useState(0);
+  const [currentWeeklyCard, setCurrentWeeklyCard] = useState(0);
   
   // Load user profile from localStorage or use defaults
   const [userProfile, setUserProfile] = useState(() => {
@@ -43,15 +45,19 @@ const HealthTrackerApp = () => {
   }, [healthData]);
 
   const metrics = {
-    weight: { label: 'Weight', unit: 'lbs', icon: Scale },
-    bmi: { label: 'BMI', unit: '', icon: Activity },
-    bodyFat: { label: 'Body Fat', unit: '%', icon: TrendingDown },
-    muscleMass: { label: 'Muscle Mass', unit: 'lbs', icon: TrendingUp },
-    boneMass: { label: 'Bone Mass', unit: 'lbs', icon: Activity },
-    bodyWater: { label: 'Body Water', unit: '%', icon: Activity },
-    bmr: { label: 'BMR', unit: 'cal', icon: Activity },
-    visceralFat: { label: 'Visceral Fat', unit: '', icon: Activity }
+    weight: { label: 'Weight', unit: 'lbs', icon: Scale, group: 1 },
+    bmi: { label: 'BMI', unit: '', icon: Activity, group: 1 },
+    bodyFat: { label: 'Body Fat', unit: '%', icon: TrendingDown, group: 1 },
+    muscleMass: { label: 'Muscle Mass', unit: 'lbs', icon: TrendingUp, group: 1 },
+    boneMass: { label: 'Bone Mass', unit: 'lbs', icon: Activity, group: 2 },
+    bodyWater: { label: 'Body Water', unit: '%', icon: Activity, group: 2 },
+    bmr: { label: 'BMR', unit: 'cal', icon: Activity, group: 2 },
+    visceralFat: { label: 'Visceral Fat', unit: '', icon: Activity, group: 2 }
   };
+
+  // Group metrics for swipe cards
+  const metricsGroup1 = Object.entries(metrics).filter(([_, m]) => m.group === 1);
+  const metricsGroup2 = Object.entries(metrics).filter(([_, m]) => m.group === 2);
 
   const calculateMetrics = (weight) => {
     const totalHeightInches = (userProfile.heightFeet * 12) + userProfile.heightInches;
@@ -333,7 +339,65 @@ const HealthTrackerApp = () => {
       <div className="max-w-6xl mx-auto p-6">
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
-            {/* Goal Progress Card */}
+            {/* Current Measurements - FIRST */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-800">Current Measurements</h2>
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={() => setCurrentDashboardCard(0)}
+                    className={`w-2 h-2 rounded-full transition ${currentDashboardCard === 0 ? 'bg-blue-600' : 'bg-gray-300'}`}
+                  />
+                  <button 
+                    onClick={() => setCurrentDashboardCard(1)}
+                    className={`w-2 h-2 rounded-full transition ${currentDashboardCard === 1 ? 'bg-blue-600' : 'bg-gray-300'}`}
+                  />
+                </div>
+              </div>
+              
+              <div className="overflow-hidden">
+                <div 
+                  className="flex transition-transform duration-300 ease-out"
+                  style={{ transform: `translateX(-${currentDashboardCard * 100}%)` }}
+                >
+                  {/* Card 1 - Primary Metrics */}
+                  <div className="w-full flex-shrink-0 grid grid-cols-2 gap-4 pr-2">
+                    {metricsGroup1.map(([key, { label, unit }]) => {
+                      const latestValue = healthData[healthData.length - 1]?.[key] || 0;
+                      return (
+                        <div key={key} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4">
+                          <div className="text-sm text-gray-600 mb-1">{label}</div>
+                          <div className="text-2xl font-bold text-gray-800">
+                            {latestValue} <span className="text-sm font-normal text-gray-500">{unit}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Card 2 - Secondary Metrics */}
+                  <div className="w-full flex-shrink-0 grid grid-cols-2 gap-4 pl-2">
+                    {metricsGroup2.map(([key, { label, unit }]) => {
+                      const latestValue = healthData[healthData.length - 1]?.[key] || 0;
+                      return (
+                        <div key={key} className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4">
+                          <div className="text-sm text-gray-600 mb-1">{label}</div>
+                          <div className="text-2xl font-bold text-gray-800">
+                            {latestValue} <span className="text-sm font-normal text-gray-500">{unit}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="text-center mt-4 text-sm text-gray-500">
+                Swipe or tap dots to see more →
+              </div>
+            </div>
+
+            {/* Goal Progress Card - SECOND */}
             {healthData.length > 0 && (
               <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-lg p-6 text-white">
                 <div className="flex items-center justify-between mb-4">
@@ -410,23 +474,7 @@ const HealthTrackerApp = () => {
               </div>
             )}
 
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Current Measurements</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {Object.entries(metrics).map(([key, { label, unit }]) => {
-                  const latestValue = healthData[healthData.length - 1]?.[key] || 0;
-                  return (
-                    <div key={key} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4">
-                      <div className="text-sm text-gray-600 mb-1">{label}</div>
-                      <div className="text-2xl font-bold text-gray-800">
-                        {latestValue} <span className="text-sm font-normal text-gray-500">{unit}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
+            {/* History Chart - THIRD */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-800">History</h2>
@@ -444,7 +492,9 @@ const HealthTrackerApp = () => {
                 <BarChart data={healthData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
-                  <YAxis />
+                  <YAxis 
+                    domain={selectedMetric === 'weight' ? [userProfile.targetWeight - 10, 'auto'] : ['auto', 'auto']}
+                  />
                   <Tooltip />
                   <Legend />
                   <Bar 
@@ -471,34 +521,86 @@ const HealthTrackerApp = () => {
         {activeTab === 'weekly' && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center space-x-2">
-                <Calendar className="w-6 h-6" />
-                <span>Weekly Averages Comparison</span>
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {Object.entries(metrics).map(([key, { label, unit }]) => {
-                  const trend = getTrendIndicator(currentWeek[key], previousWeek[key]);
-                  const TrendIcon = trend.icon;
-                  return (
-                    <div key={key} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border-2 border-blue-100">
-                      <div className="text-sm text-gray-600 mb-2">{label}</div>
-                      <div className="flex items-baseline justify-between">
-                        <div className="text-2xl font-bold text-gray-800">
-                          {currentWeek[key]} <span className="text-sm font-normal text-gray-500">{unit}</span>
-                        </div>
-                        {TrendIcon && (
-                          <div className={`flex items-center space-x-1 ${trend.color}`}>
-                            <TrendIcon className="w-4 h-4" />
-                            <span className="text-sm font-medium">{trend.text}</span>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-800 flex items-center space-x-2">
+                  <Calendar className="w-6 h-6" />
+                  <span>Weekly Averages</span>
+                </h2>
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={() => setCurrentWeeklyCard(0)}
+                    className={`w-2 h-2 rounded-full transition ${currentWeeklyCard === 0 ? 'bg-blue-600' : 'bg-gray-300'}`}
+                  />
+                  <button 
+                    onClick={() => setCurrentWeeklyCard(1)}
+                    className={`w-2 h-2 rounded-full transition ${currentWeeklyCard === 1 ? 'bg-blue-600' : 'bg-gray-300'}`}
+                  />
+                </div>
+              </div>
+              
+              <div className="overflow-hidden">
+                <div 
+                  className="flex transition-transform duration-300 ease-out"
+                  style={{ transform: `translateX(-${currentWeeklyCard * 100}%)` }}
+                >
+                  {/* Card 1 - Primary Metrics */}
+                  <div className="w-full flex-shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-4 pr-2">
+                    {metricsGroup1.map(([key, { label, unit }]) => {
+                      const trend = getTrendIndicator(currentWeek[key], previousWeek[key]);
+                      const TrendIcon = trend.icon;
+                      return (
+                        <div key={key} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border-2 border-blue-100">
+                          <div className="text-sm text-gray-600 mb-2">{label}</div>
+                          <div className="flex items-baseline justify-between">
+                            <div className="text-2xl font-bold text-gray-800">
+                              {currentWeek[key]} <span className="text-sm font-normal text-gray-500">{unit}</span>
+                            </div>
+                            {TrendIcon && (
+                              <div className={`flex items-center space-x-1 ${trend.color}`}>
+                                <TrendIcon className="w-4 h-4" />
+                                <span className="text-sm font-medium">{trend.text}</span>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-2">
-                        Last week: {previousWeek[key]} {unit}
-                      </div>
-                    </div>
-                  );
-                })}
+                          <div className="text-xs text-gray-500 mt-2">
+                            Last week: {previousWeek[key]} {unit}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Card 2 - Secondary Metrics */}
+                  <div className="w-full flex-shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-4 pl-2">
+                    {metricsGroup2.map(([key, { label, unit }]) => {
+                      const trend = getTrendIndicator(currentWeek[key], previousWeek[key]);
+                      const TrendIcon = trend.icon;
+                      return (
+                        <div key={key} className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border-2 border-purple-100">
+                          <div className="text-sm text-gray-600 mb-2">{label}</div>
+                          <div className="flex items-baseline justify-between">
+                            <div className="text-2xl font-bold text-gray-800">
+                              {currentWeek[key]} <span className="text-sm font-normal text-gray-500">{unit}</span>
+                            </div>
+                            {TrendIcon && (
+                              <div className={`flex items-center space-x-1 ${trend.color}`}>
+                                <TrendIcon className="w-4 h-4" />
+                                <span className="text-sm font-medium">{trend.text}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-2">
+                            Last week: {previousWeek[key]} {unit}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="text-center mt-4 text-sm text-gray-500">
+                Swipe or tap dots to see more →
               </div>
             </div>
           </div>
