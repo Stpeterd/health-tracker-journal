@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Scale, TrendingUp, TrendingDown, Calendar, Plus, Users, Activity, Download, Upload } from 'lucide-react';
 
 const HealthTrackerApp = () => {
@@ -333,6 +333,83 @@ const HealthTrackerApp = () => {
       <div className="max-w-6xl mx-auto p-6">
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
+            {/* Goal Progress Card */}
+            {healthData.length > 0 && (
+              <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-lg p-6 text-white">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold">Weight Goal Progress</h2>
+                  <Scale className="w-8 h-8" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white bg-opacity-20 rounded-lg p-4">
+                    <div className="text-sm opacity-90 mb-1">Current Weight</div>
+                    <div className="text-3xl font-bold">
+                      {healthData[healthData.length - 1]?.weight || 0} lbs
+                    </div>
+                  </div>
+                  <div className="bg-white bg-opacity-20 rounded-lg p-4">
+                    <div className="text-sm opacity-90 mb-1">Goal Weight</div>
+                    <div className="text-3xl font-bold">
+                      {userProfile.targetWeight} lbs
+                    </div>
+                  </div>
+                  <div className="bg-white bg-opacity-20 rounded-lg p-4">
+                    <div className="text-sm opacity-90 mb-1">To Go</div>
+                    <div className="text-3xl font-bold">
+                      {Math.abs((healthData[healthData.length - 1]?.weight || 0) - userProfile.targetWeight).toFixed(1)} lbs
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span>Progress</span>
+                    <span>
+                      {(() => {
+                        const current = healthData[healthData.length - 1]?.weight || 0;
+                        const start = healthData[0]?.weight || current;
+                        const target = userProfile.targetWeight;
+                        const totalToLose = start - target;
+                        const lostSoFar = start - current;
+                        const percentage = totalToLose !== 0 ? Math.min(100, Math.max(0, (lostSoFar / totalToLose) * 100)) : 0;
+                        return `${percentage.toFixed(0)}%`;
+                      })()}
+                    </span>
+                  </div>
+                  <div className="w-full bg-white bg-opacity-30 rounded-full h-4">
+                    <div 
+                      className="bg-white h-4 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${(() => {
+                          const current = healthData[healthData.length - 1]?.weight || 0;
+                          const start = healthData[0]?.weight || current;
+                          const target = userProfile.targetWeight;
+                          const totalToLose = start - target;
+                          const lostSoFar = start - current;
+                          const percentage = totalToLose !== 0 ? Math.min(100, Math.max(0, (lostSoFar / totalToLose) * 100)) : 0;
+                          return percentage;
+                        })()}%`
+                      }}
+                    />
+                  </div>
+                  <div className="text-center mt-3 text-lg font-semibold">
+                    {(() => {
+                      const current = healthData[healthData.length - 1]?.weight || 0;
+                      const target = userProfile.targetWeight;
+                      const remaining = current - target;
+                      
+                      if (remaining > 0) {
+                        return `You have ${remaining.toFixed(1)} pounds to go to reach your goal! 💪`;
+                      } else if (remaining < 0) {
+                        return `🎉 Congratulations! You've exceeded your goal by ${Math.abs(remaining).toFixed(1)} pounds!`;
+                      } else {
+                        return `🎯 Perfect! You've reached your goal weight!`;
+                      }
+                    })()}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Current Measurements</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -364,17 +441,15 @@ const HealthTrackerApp = () => {
                 </select>
               </div>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={healthData}>
+                <BarChart data={healthData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Line 
-                    type="monotone" 
+                  <Bar 
                     dataKey={selectedMetric} 
-                    stroke="#3b82f6" 
-                    strokeWidth={2}
+                    fill="#3b82f6"
                     name={metrics[selectedMetric].label}
                   />
                   {selectedMetric === 'weight' && (
@@ -387,7 +462,7 @@ const HealthTrackerApp = () => {
                       name="Target Weight"
                     />
                   )}
-                </LineChart>
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -444,20 +519,18 @@ const HealthTrackerApp = () => {
               </select>
             </div>
             <ResponsiveContainer width="100%" height={400}>
-              <LineChart data={weeklyTrends}>
+              <BarChart data={weeklyTrends}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="weekStart" />
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line 
-                  type="monotone" 
+                <Bar 
                   dataKey={selectedMetric} 
-                  stroke="#3b82f6" 
-                  strokeWidth={3}
+                  fill="#3b82f6"
                   name={`${metrics[selectedMetric].label} (Weekly Avg)`}
                 />
-              </LineChart>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         )}
