@@ -255,35 +255,35 @@ const HealthTrackerApp = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 shadow-lg">
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 md:p-6 shadow-lg">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Scale className="w-8 h-8" />
-              <h1 className="text-2xl font-bold">Health Tracker Pro</h1>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center space-x-2 md:space-x-3">
+              <Scale className="w-6 h-6 md:w-8 md:h-8" />
+              <h1 className="text-lg md:text-2xl font-bold">Health Tracker Pro</h1>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={handleExportData}
-                className="bg-white bg-opacity-20 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-opacity-30 transition"
+                className="bg-white bg-opacity-20 text-white p-2 rounded-lg hover:bg-opacity-30 transition"
                 title="Export Data"
               >
                 <Download className="w-5 h-5" />
               </button>
-              <label className="bg-white bg-opacity-20 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-opacity-30 transition cursor-pointer" title="Import Data">
+              <label className="bg-white bg-opacity-20 text-white p-2 rounded-lg hover:bg-opacity-30 transition cursor-pointer" title="Import Data">
                 <Upload className="w-5 h-5" />
                 <input type="file" accept=".json" onChange={handleImportData} className="hidden" />
               </label>
               <button
                 onClick={() => setShowProfile(true)}
-                className="bg-white bg-opacity-20 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-opacity-30 transition"
+                className="bg-white bg-opacity-20 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-opacity-30 transition whitespace-nowrap"
               >
                 <Users className="w-5 h-5" />
-                <span>Profile</span>
+                <span className="hidden sm:inline">Profile</span>
               </button>
               <button
                 onClick={() => setShowAddData(true)}
-                className="bg-white text-blue-600 px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-50 transition"
+                className="bg-white text-blue-600 px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-50 transition whitespace-nowrap"
               >
                 <Plus className="w-5 h-5" />
                 <span>Add Weight</span>
