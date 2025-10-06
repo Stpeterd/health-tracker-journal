@@ -1,18 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Scale, TrendingUp, TrendingDown, Calendar, Plus, Users, Activity } from 'lucide-react';
+import { Scale, TrendingUp, TrendingDown, Calendar, Plus, Users, Activity, Download, Upload } from 'lucide-react';
 
 const HealthTrackerApp = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedMetric, setSelectedMetric] = useState('weight');
   const [showAddData, setShowAddData] = useState(false);
   
-  const [userProfile, setUserProfile] = useState({
-    heightFeet: 5,
-    heightInches: 10,
-    age: 30,
-    gender: 'male',
-    targetWeight: 170
+  // Load user profile from localStorage or use defaults
+  const [userProfile, setUserProfile] = useState(() => {
+    const saved = localStorage.getItem('healthTrackerProfile');
+    return saved ? JSON.parse(saved) : {
+      heightFeet: 5,
+      heightInches: 10,
+      age: 30,
+      gender: 'male',
+      targetWeight: 170
+    };
   });
 
   const [showProfile, setShowProfile] = useState(false);
@@ -22,7 +26,21 @@ const HealthTrackerApp = () => {
     weight: ''
   });
 
-  const [healthData, setHealthData] = useState([]);
+  // Load health data from localStorage or use empty array
+  const [healthData, setHealthData] = useState(() => {
+    const saved = localStorage.getItem('healthTrackerData');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Save user profile to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('healthTrackerProfile', JSON.stringify(userProfile));
+  }, [userProfile]);
+
+  // Save health data to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('healthTrackerData', JSON.stringify(healthData));
+  }, [healthData]);
 
   const metrics = {
     weight: { label: 'Weight', unit: 'lbs', icon: Scale },
@@ -197,6 +215,44 @@ const HealthTrackerApp = () => {
     });
   };
 
+  // Export data as JSON file
+  const handleExportData = () => {
+    const dataToExport = {
+      profile: userProfile,
+      healthData: healthData,
+      exportDate: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `health-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Import data from JSON file
+  const handleImportData = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const imported = JSON.parse(e.target?.result);
+        if (imported.profile) setUserProfile(imported.profile);
+        if (imported.healthData) setHealthData(imported.healthData);
+        alert('Data imported successfully!');
+      } catch (error) {
+        alert('Error importing data. Please check the file format.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 shadow-lg">
@@ -207,6 +263,17 @@ const HealthTrackerApp = () => {
               <h1 className="text-2xl font-bold">Health Tracker Pro</h1>
             </div>
             <div className="flex items-center space-x-3">
+              <button
+                onClick={handleExportData}
+                className="bg-white bg-opacity-20 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-opacity-30 transition"
+                title="Export Data"
+              >
+                <Download className="w-5 h-5" />
+              </button>
+              <label className="bg-white bg-opacity-20 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-opacity-30 transition cursor-pointer" title="Import Data">
+                <Upload className="w-5 h-5" />
+                <input type="file" accept=".json" onChange={handleImportData} className="hidden" />
+              </label>
               <button
                 onClick={() => setShowProfile(true)}
                 className="bg-white bg-opacity-20 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-opacity-30 transition"
