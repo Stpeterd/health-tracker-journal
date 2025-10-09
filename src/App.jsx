@@ -10,6 +10,8 @@ const HealthTrackerApp = () => {
   const [currentWeeklyCard, setCurrentWeeklyCard] = useState(0);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [newNote, setNewNote] = useState('');
+  const [showWeeklyHistory, setShowWeeklyHistory] = useState(false);
+  const [selectedWeeklyMetric, setSelectedWeeklyMetric] = useState(null);
   
   const [userProfile, setUserProfile] = useState(() => {
     const saved = localStorage.getItem('healthTrackerProfile');
@@ -80,11 +82,7 @@ const HealthTrackerApp = () => {
       const thighSkinfold = 10 + (bmi - 20) * 2.0 + (userProfile.age - 30) * 0.18;
       
       const sumSkinfolds = chestSkinfold + abdominalSkinfold + thighSkinfold;
-      
-      const bodyDensity = 1.10938 - (0.0008267 * sumSkinfolds) + 
-                          (0.0000016 * sumSkinfolds * sumSkinfolds) - 
-                          (0.0002574 * userProfile.age);
-      
+      const bodyDensity = 1.10938 - (0.0008267 * sumSkinfolds) + (0.0000016 * sumSkinfolds * sumSkinfolds) - (0.0002574 * userProfile.age);
       bodyFat = ((4.95 / bodyDensity) - 4.50) * 100;
       bodyFat = Math.max(5, Math.min(40, bodyFat));
       
@@ -94,11 +92,7 @@ const HealthTrackerApp = () => {
       const thighSkinfold = 14 + (bmi - 20) * 2.1 + (userProfile.age - 30) * 0.22;
       
       const sumSkinfolds = tricepsSkinfold + suprailiacSkinfold + thighSkinfold;
-      
-      const bodyDensity = 1.0994921 - (0.0009929 * sumSkinfolds) + 
-                          (0.0000023 * sumSkinfolds * sumSkinfolds) - 
-                          (0.0001392 * userProfile.age);
-      
+      const bodyDensity = 1.0994921 - (0.0009929 * sumSkinfolds) + (0.0000023 * sumSkinfolds * sumSkinfolds) - (0.0001392 * userProfile.age);
       bodyFat = ((4.95 / bodyDensity) - 4.50) * 100;
       bodyFat = Math.max(10, Math.min(45, bodyFat));
     }
@@ -106,7 +100,6 @@ const HealthTrackerApp = () => {
     const fatMass = weight * (bodyFat / 100);
     const boneMass = weight * 0.04;
     const muscleMass = weight - fatMass - boneMass;
-    
     const bodyWater = userProfile.gender === 'male' ? 60 - (bodyFat * 0.4) : 55 - (bodyFat * 0.4);
     
     let bmr;
@@ -164,7 +157,6 @@ const HealthTrackerApp = () => {
 
     const firstDate = new Date(sortedData[0].date);
     const lastDate = new Date(sortedData[sortedData.length - 1].date);
-    
     let currentWeekStart = new Date(firstDate);
     
     while (currentWeekStart <= lastDate) {
@@ -176,7 +168,8 @@ const HealthTrackerApp = () => {
 
       if (weekData.length > 0) {
         const weekAvg = {
-          weekStart: currentWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          weekStart: currentWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          weekEnd: weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
         };
 
         Object.keys(metrics).forEach(metric => {
@@ -289,7 +282,7 @@ const HealthTrackerApp = () => {
         if (imported.notes) setNotes(imported.notes);
         alert('Data imported successfully!');
       } catch (error) {
-        alert('Error importing data. Please check the file format.');
+        alert('Error importing data');
       }
     };
     reader.readAsText(file);
@@ -305,28 +298,18 @@ const HealthTrackerApp = () => {
               <h1 className="text-lg md:text-2xl font-bold">Health Tracker Pro</h1>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <button
-                onClick={handleExportData}
-                className="bg-white bg-opacity-20 text-white p-2 rounded-lg hover:bg-opacity-30 transition"
-                title="Export Data"
-              >
+              <button onClick={handleExportData} className="bg-white bg-opacity-20 text-white p-2 rounded-lg hover:bg-opacity-30 transition" title="Export">
                 <Download className="w-5 h-5" />
               </button>
-              <label className="bg-white bg-opacity-20 text-white p-2 rounded-lg hover:bg-opacity-30 transition cursor-pointer" title="Import Data">
+              <label className="bg-white bg-opacity-20 text-white p-2 rounded-lg hover:bg-opacity-30 transition cursor-pointer" title="Import">
                 <Upload className="w-5 h-5" />
                 <input type="file" accept=".json" onChange={handleImportData} className="hidden" />
               </label>
-              <button
-                onClick={() => setShowProfile(true)}
-                className="bg-white bg-opacity-20 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-opacity-30 transition whitespace-nowrap"
-              >
+              <button onClick={() => setShowProfile(true)} className="bg-white bg-opacity-20 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-opacity-30 transition whitespace-nowrap">
                 <Users className="w-5 h-5" />
                 <span className="hidden sm:inline">Profile</span>
               </button>
-              <button
-                onClick={() => setShowAddData(true)}
-                className="bg-white text-blue-600 px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-50 transition whitespace-nowrap"
-              >
+              <button onClick={() => setShowAddData(true)} className="bg-white text-blue-600 px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-50 transition whitespace-nowrap">
                 <Plus className="w-5 h-5" />
                 <span>Add Weight</span>
               </button>
@@ -338,46 +321,17 @@ const HealthTrackerApp = () => {
       <div className="bg-white shadow-md">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex space-x-8 overflow-x-auto">
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`py-4 px-2 border-b-2 font-medium transition whitespace-nowrap ${
-                activeTab === 'dashboard'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Dashboard
-            </button>
-            <button
-              onClick={() => setActiveTab('weekly')}
-              className={`py-4 px-2 border-b-2 font-medium transition whitespace-nowrap ${
-                activeTab === 'weekly'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Weekly Averages
-            </button>
-            <button
-              onClick={() => setActiveTab('trends')}
-              className={`py-4 px-2 border-b-2 font-medium transition whitespace-nowrap ${
-                activeTab === 'trends'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Trends
-            </button>
-            <button
-              onClick={() => setActiveTab('notes')}
-              className={`py-4 px-2 border-b-2 font-medium transition whitespace-nowrap ${
-                activeTab === 'notes'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Notes
-            </button>
+            {['dashboard', 'weekly', 'trends', 'notes'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`py-4 px-2 border-b-2 font-medium transition whitespace-nowrap ${
+                  activeTab === tab ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1).replace('weekly', 'Weekly Averages')}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -389,55 +343,31 @@ const HealthTrackerApp = () => {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-800">Current Measurements</h2>
                 <div className="flex space-x-2">
-                  <button 
-                    onClick={() => setCurrentDashboardCard(0)}
-                    className={`w-2 h-2 rounded-full transition ${currentDashboardCard === 0 ? 'bg-blue-600' : 'bg-gray-300'}`}
-                  />
-                  <button 
-                    onClick={() => setCurrentDashboardCard(1)}
-                    className={`w-2 h-2 rounded-full transition ${currentDashboardCard === 1 ? 'bg-blue-600' : 'bg-gray-300'}`}
-                  />
+                  {[0, 1].map(i => (
+                    <button key={i} onClick={() => setCurrentDashboardCard(i)} className={`w-2 h-2 rounded-full transition ${currentDashboardCard === i ? 'bg-blue-600' : 'bg-gray-300'}`} />
+                  ))}
                 </div>
               </div>
               
               <div className="overflow-hidden">
-                <div 
-                  className="flex transition-transform duration-300 ease-out"
-                  style={{ transform: `translateX(-${currentDashboardCard * 100}%)` }}
-                >
-                  <div className="w-full flex-shrink-0 grid grid-cols-2 gap-4 pr-2">
-                    {metricsGroup1.map(([key, { label, unit }]) => {
-                      const latestValue = healthData[healthData.length - 1]?.[key] || 0;
-                      return (
-                        <div key={key} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4">
-                          <div className="text-sm text-gray-600 mb-1">{label}</div>
-                          <div className="text-2xl font-bold text-gray-800">
-                            {latestValue} <span className="text-sm font-normal text-gray-500">{unit}</span>
+                <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentDashboardCard * 100}%)` }}>
+                  {[metricsGroup1, metricsGroup2].map((group, groupIndex) => (
+                    <div key={groupIndex} className={`w-full flex-shrink-0 grid grid-cols-2 gap-4 ${groupIndex === 0 ? 'pr-2' : 'pl-2'}`}>
+                      {group.map(([key, { label, unit }]) => {
+                        const latestValue = healthData[healthData.length - 1]?.[key] || 0;
+                        return (
+                          <div key={key} className={`bg-gradient-to-br ${groupIndex === 0 ? 'from-blue-50 to-indigo-50' : 'from-purple-50 to-pink-50'} rounded-lg p-4`}>
+                            <div className="text-sm text-gray-600 mb-1">{label}</div>
+                            <div className="text-2xl font-bold text-gray-800">{latestValue} <span className="text-sm font-normal text-gray-500">{unit}</span></div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  
-                  <div className="w-full flex-shrink-0 grid grid-cols-2 gap-4 pl-2">
-                    {metricsGroup2.map(([key, { label, unit }]) => {
-                      const latestValue = healthData[healthData.length - 1]?.[key] || 0;
-                      return (
-                        <div key={key} className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4">
-                          <div className="text-sm text-gray-600 mb-1">{label}</div>
-                          <div className="text-2xl font-bold text-gray-800">
-                            {latestValue} <span className="text-sm font-normal text-gray-500">{unit}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  ))}
                 </div>
               </div>
               
-              <div className="text-center mt-4 text-sm text-gray-500">
-                Swipe or tap dots to see more →
-              </div>
+              <div className="text-center mt-4 text-sm text-gray-500">Swipe or tap dots →</div>
             </div>
 
             {healthData.length > 0 && (
@@ -463,39 +393,29 @@ const HealthTrackerApp = () => {
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   <div className="text-center">
                     <div className="text-xs text-gray-500">Current</div>
-                    <div className="text-lg font-bold text-gray-800">
-                      {healthData[healthData.length - 1]?.weight || 0}
-                    </div>
+                    <div className="text-lg font-bold text-gray-800">{healthData[healthData.length - 1]?.weight || 0}</div>
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-gray-500">Goal</div>
-                    <div className="text-lg font-bold text-blue-600">
-                      {userProfile.targetWeight}
-                    </div>
+                    <div className="text-lg font-bold text-blue-600">{userProfile.targetWeight}</div>
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-gray-500">To Go</div>
-                    <div className="text-lg font-bold text-green-600">
-                      {Math.abs((healthData[healthData.length - 1]?.weight || 0) - userProfile.targetWeight).toFixed(1)}
-                    </div>
+                    <div className="text-lg font-bold text-green-600">{Math.abs((healthData[healthData.length - 1]?.weight || 0) - userProfile.targetWeight).toFixed(1)}</div>
                   </div>
                 </div>
                 
                 <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                  <div 
-                    className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${(() => {
-                        const current = healthData[healthData.length - 1]?.weight || 0;
-                        const start = healthData[0]?.weight || current;
-                        const target = userProfile.targetWeight;
-                        const totalToLose = start - target;
-                        const lostSoFar = start - current;
-                        const percentage = totalToLose !== 0 ? Math.min(100, Math.max(0, (lostSoFar / totalToLose) * 100)) : 0;
-                        return percentage;
-                      })()}%`
-                    }}
-                  />
+                  <div className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500" style={{
+                    width: `${(() => {
+                      const current = healthData[healthData.length - 1]?.weight || 0;
+                      const start = healthData[0]?.weight || current;
+                      const target = userProfile.targetWeight;
+                      const totalToLose = start - target;
+                      const lostSoFar = start - current;
+                      return totalToLose !== 0 ? Math.min(100, Math.max(0, (lostSoFar / totalToLose) * 100)) : 0;
+                    })()}%`
+                  }} />
                 </div>
                 
                 <div className="text-center mt-2 text-xs font-medium text-gray-600">
@@ -503,14 +423,9 @@ const HealthTrackerApp = () => {
                     const current = healthData[healthData.length - 1]?.weight || 0;
                     const target = userProfile.targetWeight;
                     const remaining = current - target;
-                    
-                    if (remaining > 0) {
-                      return `${remaining.toFixed(1)} lbs to goal 💪`;
-                    } else if (remaining < 0) {
-                      return `🎉 Goal exceeded by ${Math.abs(remaining).toFixed(1)} lbs!`;
-                    } else {
-                      return `🎯 Goal reached!`;
-                    }
+                    if (remaining > 0) return `${remaining.toFixed(1)} lbs to goal 💪`;
+                    if (remaining < 0) return `🎉 Goal exceeded by ${Math.abs(remaining).toFixed(1)} lbs!`;
+                    return `🎯 Goal reached!`;
                   })()}
                 </div>
               </div>
@@ -519,11 +434,7 @@ const HealthTrackerApp = () => {
             <div className="bg-white rounded-xl shadow-lg p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-800">History</h2>
-                <select
-                  value={selectedMetric}
-                  onChange={(e) => setSelectedMetric(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-4 py-2 text-sm"
-                >
+                <select value={selectedMetric} onChange={(e) => setSelectedMetric(e.target.value)} className="border border-gray-300 rounded-lg px-4 py-2 text-sm">
                   {Object.entries(metrics).map(([key, { label }]) => (
                     <option key={key} value={key}>{label}</option>
                   ))}
@@ -533,26 +444,12 @@ const HealthTrackerApp = () => {
                 <BarChart data={healthData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" style={{fontSize: '12px'}} />
-                  <YAxis 
-                    domain={selectedMetric === 'weight' ? [userProfile.targetWeight - 10, 'auto'] : ['auto', 'auto']}
-                    style={{fontSize: '12px'}}
-                  />
+                  <YAxis domain={selectedMetric === 'weight' ? [userProfile.targetWeight - 10, 'auto'] : ['auto', 'auto']} style={{fontSize: '12px'}} />
                   <Tooltip />
                   <Legend />
-                  <Bar 
-                    dataKey={selectedMetric} 
-                    fill="#3b82f6"
-                    name={metrics[selectedMetric].label}
-                  />
+                  <Bar dataKey={selectedMetric} fill="#3b82f6" name={metrics[selectedMetric].label} />
                   {selectedMetric === 'weight' && (
-                    <Line 
-                      type="monotone" 
-                      dataKey={() => userProfile.targetWeight} 
-                      stroke="#10b981" 
-                      strokeWidth={2}
-                      strokeDasharray="5 5"
-                      name="Target Weight"
-                    />
+                    <Line type="monotone" dataKey={() => userProfile.targetWeight} stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" name="Target" />
                   )}
                 </BarChart>
               </ResponsiveContainer>
@@ -569,70 +466,262 @@ const HealthTrackerApp = () => {
                   <span>Weekly Averages</span>
                 </h2>
                 <div className="flex space-x-2">
-                  <button 
-                    onClick={() => setCurrentWeeklyCard(0)}
-                    className={`w-2 h-2 rounded-full transition ${currentWeeklyCard === 0 ? 'bg-blue-600' : 'bg-gray-300'}`}
-                  />
-                  <button 
-                    onClick={() => setCurrentWeeklyCard(1)}
-                    className={`w-2 h-2 rounded-full transition ${currentWeeklyCard === 1 ? 'bg-blue-600' : 'bg-gray-300'}`}
-                  />
+                  {[0, 1].map(i => (
+                    <button key={i} onClick={() => setCurrentWeeklyCard(i)} className={`w-2 h-2 rounded-full transition ${currentWeeklyCard === i ? 'bg-blue-600' : 'bg-gray-300'}`} />
+                  ))}
                 </div>
               </div>
               
               <div className="overflow-hidden">
-                <div 
-                  className="flex transition-transform duration-300 ease-out"
-                  style={{ transform: `translateX(-${currentWeeklyCard * 100}%)` }}
-                >
-                  <div className="w-full flex-shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-4 pr-2">
-                    {metricsGroup1.map(([key, { label, unit }]) => {
-                      const trend = getTrendIndicator(currentWeek[key], previousWeek[key]);
-                      const TrendIcon = trend.icon;
-                      return (
-                        <div key={key} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border-2 border-blue-100">
-                          <div className="text-sm text-gray-600 mb-2">{label}</div>
-                          <div className="flex items-baseline justify-between">
-                            <div className="text-2xl font-bold text-gray-800">
-                              {currentWeek[key]} <span className="text-sm font-normal text-gray-500">{unit}</span>
+                <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentWeeklyCard * 100}%)` }}>
+                  {[metricsGroup1, metricsGroup2].map((group, groupIndex) => (
+                    <div key={groupIndex} className={`w-full flex-shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-4 ${groupIndex === 0 ? 'pr-2' : 'pl-2'}`}>
+                      {group.map(([key, { label, unit }]) => {
+                        const trend = getTrendIndicator(currentWeek[key], previousWeek[key]);
+                        const TrendIcon = trend.icon;
+                        return (
+                          <button key={key} onClick={() => { setSelectedWeeklyMetric(key); setShowWeeklyHistory(true); }}
+                            className={`bg-gradient-to-br ${groupIndex === 0 ? 'from-blue-50 to-indigo-50 border-blue-100' : 'from-purple-50 to-pink-50 border-purple-100'} rounded-lg p-4 border-2 text-left hover:shadow-md transition`}>
+                            <div className="text-sm text-gray-600 mb-2">{label}</div>
+                            <div className="flex items-baseline justify-between">
+                              <div className="text-2xl font-bold text-gray-800">{currentWeek[key]} <span className="text-sm font-normal text-gray-500">{unit}</span></div>
+                              {TrendIcon && (
+                                <div className={`flex items-center space-x-1 ${trend.color}`}>
+                                  <TrendIcon className="w-4 h-4" />
+                                  <span className="text-sm font-medium">{trend.text}</span>
+                                </div>
+                              )}
                             </div>
-                            {TrendIcon && (
-                              <div className={`flex items-center space-x-1 ${trend.color}`}>
-                                <TrendIcon className="w-4 h-4" />
-                                <span className="text-sm font-medium">{trend.text}</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-2">
-                            Last week: {previousWeek[key]} {unit}
-                          </div>
-                        </div>
-                      );
-                    })}
+                            <div className="text-xs text-gray-500 mt-2">Last week: {previousWeek[key]} {unit}</div>
+                            <div className={`text-xs mt-1 ${groupIndex === 0 ? 'text-blue-600' : 'text-purple-600'}`}>Tap to see history →</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="text-center mt-4 text-sm text-gray-500">Swipe or tap dots →</div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'trends' && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-800">Weekly Average Trends</h2>
+              <select value={selectedMetric} onChange={(e) => setSelectedMetric(e.target.value)} className="border border-gray-300 rounded-lg px-4 py-2 text-sm">
+                {Object.entries(metrics).map(([key, { label }]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={weeklyTrends}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="weekStart" style={{fontSize: '12px'}} />
+                <YAxis style={{fontSize: '12px'}} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey={selectedMetric} fill="#3b82f6" name={`${metrics[selectedMetric].label} (Weekly Avg)`} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {activeTab === 'notes' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-800 flex items-center space-x-2">
+                  <FileText className="w-6 h-6" />
+                  <span>Diet & Lifestyle Notes</span>
+                </h2>
+                <button onClick={() => setShowNoteModal(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition text-sm">
+                  <Plus className="w-4 h-4" />
+                  <span>Add Note</span>
+                </button>
+              </div>
+              
+              <p className="text-sm text-gray-600 mb-4">Track diet changes, new exercises, supplements, or anything that might affect your progress 📝</p>
+
+              <div className="space-y-3">
+                {notes.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>No notes yet. Add your first note!</p>
                   </div>
-                  
-                  <div className="w-full flex-shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-4 pl-2">
-                    {metricsGroup2.map(([key, { label, unit }]) => {
-                      const trend = getTrendIndicator(currentWeek[key], previousWeek[key]);
-                      const TrendIcon = trend.icon;
-                      return (
-                        <div key={key} className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border-2 border-purple-100">
-                          <div className="text-sm text-gray-600 mb-2">{label}</div>
-                          <div className="flex items-baseline justify-between">
-                            <div className="text-2xl font-bold text-gray-800">
-                              {currentWeek[key]} <span className="text-sm font-normal text-gray-500">{unit}</span>
-                            </div>
-                            {TrendIcon && (
-                              <div className={`flex items-center space-x-1 ${trend.color}`}>
-                                <TrendIcon className="w-4 h-4" />
-                                <span className="text-sm font-medium">{trend.text}</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-2">
-                            Last week: {previousWeek[key]} {unit}
-                          </div>
-                        </div>
-                      );
-                    })}
+                ) : (
+                  notes.map((note) => (
+                    <div key={note.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-xs text-gray-500 font-medium">{note.displayDate}</span>
+                        <button onClick={() => handleDeleteNote(note.id)} className="text-red-500 hover:text-red-700 transition">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <p className="text-gray-800 whitespace-pre-wrap">{note.text}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+              <h3 className="font-bold text-yellow-800 mb-2 flex items-center space-x-2">
+                <span>⚠️</span>
+                <span>Calculation Disclaimer</span>
+              </h3>
+              <div className="text-sm text-yellow-800 space-y-2">
+                <p><strong>Body metrics are estimates:</strong> Body fat, muscle mass, BMR, and other calculations are based on the Jackson-Pollock equations and standard formulas. These are estimates and may not be 100% accurate for everyone.</p>
+                <p><strong>Not medical advice:</strong> This app is for informational and tracking purposes only. Always consult with a healthcare professional or registered dietitian before making significant changes to your diet or exercise routine.</p>
+                <p><strong>Individual variations:</strong> Body composition varies greatly between individuals. Factors like genetics, hydration, and hormones affect actual measurements.</p>
+                <p><strong>For best results:</strong> Use these metrics as trends over time rather than exact numbers. Consistency in tracking is key! 📊</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {showNoteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Add Note</h2>
+              <p className="text-sm text-gray-600 mb-4">Track diet changes, new exercises, or lifestyle adjustments</p>
+              
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Note</label>
+                <textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 h-32 resize-none" placeholder="Example: Started keto diet, Added morning cardio..." autoFocus />
+              </div>
+              
+              <div className="flex space-x-3">
+                <button onClick={handleAddNote} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition">Save Note</button>
+                <button onClick={() => { setShowNoteModal(false); setNewNote(''); }} className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-medium hover:bg-gray-300 transition">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Add Weight Measurement</h2>
+              <p className="text-sm text-gray-600 mb-6">All other metrics will be calculated automatically</p>
+              
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <input type="date" value={newEntry.date} onChange={(e) => setNewEntry({...newEntry, date: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Weight (lbs)</label>
+                  <input type="number" step="0.1" value={newEntry.weight} onChange={(e) => setNewEntry({...newEntry, weight: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-3 text-lg" placeholder="Enter weight" autoFocus />
+                </div>
+                
+                {newEntry.weight && (
+                  <div className="bg-blue-50 rounded-lg p-4 mt-4">
+                    <div className="text-sm font-medium text-gray-700 mb-2">Preview:</div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      {(() => {
+                        const preview = calculateMetrics(parseFloat(newEntry.weight));
+                        return (
+                          <>
+                            <div><span className="text-gray-600">BMI:</span> <span className="font-medium">{preview.bmi}</span></div>
+                            <div><span className="text-gray-600">Body Fat:</span> <span className="font-medium">{preview.bodyFat}%</span></div>
+                            <div><span className="text-gray-600">Muscle:</span> <span className="font-medium">{preview.muscleMass} lbs</span></div>
+                            <div><span className="text-gray-600">BMR:</span> <span className="font-medium">{preview.bmr} cal</span></div>
+                          </>
+                        );
+                      })()}
+                    </div>
                   </div>
+                )}
+              </div>
+              
+              <div className="flex space-x-3">
+                <button onClick={handleAddData} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition">Save</button>
+                <button onClick={() => setShowAddData(false)} className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-medium hover:bg-gray-300 transition">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showProfile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">User Profile</h2>
+              <p className="text-sm text-gray-600 mb-6">Your profile info is used to calculate body metrics</p>
+              
+              <div className="space-y-4 mb-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Feet</label>
+                    <input type="number" min="3" max="8" value={userProfile.heightFeet} onChange={(e) => setUserProfile({...userProfile, heightFeet: parseInt(e.target.value) || 0})} className="w-full border border-gray-300 rounded-lg px-4 py-2" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Inches</label>
+                    <input type="number" min="0" max="11" value={userProfile.heightInches} onChange={(e) => setUserProfile({...userProfile, heightInches: parseInt(e.target.value) || 0})} className="w-full border border-gray-300 rounded-lg px-4 py-2" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                  <input type="number" value={userProfile.age} onChange={(e) => setUserProfile({...userProfile, age: parseInt(e.target.value)})} className="w-full border border-gray-300 rounded-lg px-4 py-2" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                  <select value={userProfile.gender} onChange={(e) => setUserProfile({...userProfile, gender: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2">
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Target Weight (lbs)</label>
+                  <input type="number" value={userProfile.targetWeight} onChange={(e) => setUserProfile({...userProfile, targetWeight: parseFloat(e.target.value)})} className="w-full border border-gray-300 rounded-lg px-4 py-2" />
+                </div>
+              </div>
+              
+              <button onClick={() => setShowProfile(false)} className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition">Save Profile</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showWeeklyHistory && selectedWeeklyMetric && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">{metrics[selectedWeeklyMetric].label} History</h2>
+                <button onClick={() => { setShowWeeklyHistory(false); setSelectedWeeklyMetric(null); }} className="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+              </div>
+              
+              <p className="text-sm text-gray-600 mb-4">Weekly averages over time</p>
+              
+              <div className="space-y-2">
+                {weeklyTrends.slice().reverse().map((week, index) => (
+                  <div key={index} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="text-sm font-medium text-gray-700">{week.weekStart} - {week.weekEnd}</div>
+                        <div className="text-xs text-gray-500 mt-1">Week {weeklyTrends.length - index}</div>
+                      </div>
+                      <div className="text-2xl font-bold text-blue-600">{week[selectedWeeklyMetric]} <span className="text-sm font-normal text-gray-500">{metrics[selectedWeeklyMetric].unit}</span></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default HealthTrackerApp;
