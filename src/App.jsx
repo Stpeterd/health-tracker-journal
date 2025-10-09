@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Scale, TrendingUp, TrendingDown, Calendar, Plus, Users, Activity, Download, Upload } from 'lucide-react';
+import { Scale, TrendingUp, TrendingDown, Calendar, Plus, Users, Activity, Download, Upload, FileText, Trash2 } from 'lucide-react';
 
 const HealthTrackerApp = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -8,8 +8,9 @@ const HealthTrackerApp = () => {
   const [showAddData, setShowAddData] = useState(false);
   const [currentDashboardCard, setCurrentDashboardCard] = useState(0);
   const [currentWeeklyCard, setCurrentWeeklyCard] = useState(0);
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [newNote, setNewNote] = useState('');
   
-  // Load user profile from localStorage or use defaults
   const [userProfile, setUserProfile] = useState(() => {
     const saved = localStorage.getItem('healthTrackerProfile');
     return saved ? JSON.parse(saved) : {
@@ -28,21 +29,27 @@ const HealthTrackerApp = () => {
     weight: ''
   });
 
-  // Load health data from localStorage or use empty array
   const [healthData, setHealthData] = useState(() => {
     const saved = localStorage.getItem('healthTrackerData');
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Save user profile to localStorage whenever it changes
+  const [notes, setNotes] = useState(() => {
+    const saved = localStorage.getItem('healthTrackerNotes');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   useEffect(() => {
     localStorage.setItem('healthTrackerProfile', JSON.stringify(userProfile));
   }, [userProfile]);
 
-  // Save health data to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('healthTrackerData', JSON.stringify(healthData));
   }, [healthData]);
+
+  useEffect(() => {
+    localStorage.setItem('healthTrackerNotes', JSON.stringify(notes));
+  }, [notes]);
 
   const metrics = {
     weight: { label: 'Weight', unit: 'lbs', icon: Scale, group: 1 },
@@ -55,7 +62,6 @@ const HealthTrackerApp = () => {
     visceralFat: { label: 'Visceral Fat', unit: '', icon: Activity, group: 2 }
   };
 
-  // Group metrics for swipe cards
   const metricsGroup1 = Object.entries(metrics).filter(([_, m]) => m.group === 1);
   const metricsGroup2 = Object.entries(metrics).filter(([_, m]) => m.group === 2);
 
@@ -197,6 +203,36 @@ const HealthTrackerApp = () => {
     return { icon: null, color: 'text-gray-500', text: '0' };
   };
 
+  const handleAddNote = () => {
+    if (!newNote.trim()) {
+      alert('Please enter a note');
+      return;
+    }
+
+    const note = {
+      id: Date.now(),
+      text: newNote,
+      date: new Date().toISOString(),
+      displayDate: new Date().toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    };
+
+    setNotes([note, ...notes]);
+    setNewNote('');
+    setShowNoteModal(false);
+  };
+
+  const handleDeleteNote = (id) => {
+    if (window.confirm('Delete this note?')) {
+      setNotes(notes.filter(note => note.id !== id));
+    }
+  };
+
   const handleAddData = () => {
     const weight = parseFloat(newEntry.weight);
     if (!weight || weight <= 0) {
@@ -221,11 +257,11 @@ const HealthTrackerApp = () => {
     });
   };
 
-  // Export data as JSON file
   const handleExportData = () => {
     const dataToExport = {
       profile: userProfile,
       healthData: healthData,
+      notes: notes,
       exportDate: new Date().toISOString()
     };
     
@@ -240,7 +276,6 @@ const HealthTrackerApp = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Import data from JSON file
   const handleImportData = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -251,6 +286,7 @@ const HealthTrackerApp = () => {
         const imported = JSON.parse(e.target?.result);
         if (imported.profile) setUserProfile(imported.profile);
         if (imported.healthData) setHealthData(imported.healthData);
+        if (imported.notes) setNotes(imported.notes);
         alert('Data imported successfully!');
       } catch (error) {
         alert('Error importing data. Please check the file format.');
@@ -301,10 +337,10 @@ const HealthTrackerApp = () => {
 
       <div className="bg-white shadow-md">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="flex space-x-8">
+          <div className="flex space-x-8 overflow-x-auto">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`py-4 px-2 border-b-2 font-medium transition ${
+              className={`py-4 px-2 border-b-2 font-medium transition whitespace-nowrap ${
                 activeTab === 'dashboard'
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-600 hover:text-gray-800'
@@ -314,7 +350,7 @@ const HealthTrackerApp = () => {
             </button>
             <button
               onClick={() => setActiveTab('weekly')}
-              className={`py-4 px-2 border-b-2 font-medium transition ${
+              className={`py-4 px-2 border-b-2 font-medium transition whitespace-nowrap ${
                 activeTab === 'weekly'
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-600 hover:text-gray-800'
@@ -324,7 +360,7 @@ const HealthTrackerApp = () => {
             </button>
             <button
               onClick={() => setActiveTab('trends')}
-              className={`py-4 px-2 border-b-2 font-medium transition ${
+              className={`py-4 px-2 border-b-2 font-medium transition whitespace-nowrap ${
                 activeTab === 'trends'
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-600 hover:text-gray-800'
@@ -332,14 +368,23 @@ const HealthTrackerApp = () => {
             >
               Trends
             </button>
+            <button
+              onClick={() => setActiveTab('notes')}
+              className={`py-4 px-2 border-b-2 font-medium transition whitespace-nowrap ${
+                activeTab === 'notes'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Notes
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto p-6">
+      <div className="max-w-6xl mx-auto p-4 pb-20">
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
-            {/* Current Measurements - FIRST */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-800">Current Measurements</h2>
@@ -360,7 +405,6 @@ const HealthTrackerApp = () => {
                   className="flex transition-transform duration-300 ease-out"
                   style={{ transform: `translateX(-${currentDashboardCard * 100}%)` }}
                 >
-                  {/* Card 1 - Primary Metrics */}
                   <div className="w-full flex-shrink-0 grid grid-cols-2 gap-4 pr-2">
                     {metricsGroup1.map(([key, { label, unit }]) => {
                       const latestValue = healthData[healthData.length - 1]?.[key] || 0;
@@ -375,7 +419,6 @@ const HealthTrackerApp = () => {
                     })}
                   </div>
                   
-                  {/* Card 2 - Secondary Metrics */}
                   <div className="w-full flex-shrink-0 grid grid-cols-2 gap-4 pl-2">
                     {metricsGroup2.map(([key, { label, unit }]) => {
                       const latestValue = healthData[healthData.length - 1]?.[key] || 0;
@@ -397,91 +440,89 @@ const HealthTrackerApp = () => {
               </div>
             </div>
 
-            {/* Goal Progress Card - SECOND */}
             {healthData.length > 0 && (
-              <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-lg p-6 text-white">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold">Weight Goal Progress</h2>
-                  <Scale className="w-8 h-8" />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-white bg-opacity-20 rounded-lg p-4">
-                    <div className="text-sm opacity-90 mb-1">Current Weight</div>
-                    <div className="text-3xl font-bold">
-                      {healthData[healthData.length - 1]?.weight || 0} lbs
-                    </div>
+              <div className="bg-white rounded-xl shadow-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-2">
+                    <Scale className="w-5 h-5 text-blue-600" />
+                    <h3 className="font-bold text-gray-800">Goal Progress</h3>
                   </div>
-                  <div className="bg-white bg-opacity-20 rounded-lg p-4">
-                    <div className="text-sm opacity-90 mb-1">Goal Weight</div>
-                    <div className="text-3xl font-bold">
-                      {userProfile.targetWeight} lbs
-                    </div>
-                  </div>
-                  <div className="bg-white bg-opacity-20 rounded-lg p-4">
-                    <div className="text-sm opacity-90 mb-1">To Go</div>
-                    <div className="text-3xl font-bold">
-                      {Math.abs((healthData[healthData.length - 1]?.weight || 0) - userProfile.targetWeight).toFixed(1)} lbs
-                    </div>
+                  <div className="text-sm font-medium text-gray-600">
+                    {(() => {
+                      const current = healthData[healthData.length - 1]?.weight || 0;
+                      const start = healthData[0]?.weight || current;
+                      const target = userProfile.targetWeight;
+                      const totalToLose = start - target;
+                      const lostSoFar = start - current;
+                      const percentage = totalToLose !== 0 ? Math.min(100, Math.max(0, (lostSoFar / totalToLose) * 100)) : 0;
+                      return `${percentage.toFixed(0)}%`;
+                    })()}
                   </div>
                 </div>
-                <div className="mt-4">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span>Progress</span>
-                    <span>
-                      {(() => {
+                
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  <div className="text-center">
+                    <div className="text-xs text-gray-500">Current</div>
+                    <div className="text-lg font-bold text-gray-800">
+                      {healthData[healthData.length - 1]?.weight || 0}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-gray-500">Goal</div>
+                    <div className="text-lg font-bold text-blue-600">
+                      {userProfile.targetWeight}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-gray-500">To Go</div>
+                    <div className="text-lg font-bold text-green-600">
+                      {Math.abs((healthData[healthData.length - 1]?.weight || 0) - userProfile.targetWeight).toFixed(1)}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${(() => {
                         const current = healthData[healthData.length - 1]?.weight || 0;
                         const start = healthData[0]?.weight || current;
                         const target = userProfile.targetWeight;
                         const totalToLose = start - target;
                         const lostSoFar = start - current;
                         const percentage = totalToLose !== 0 ? Math.min(100, Math.max(0, (lostSoFar / totalToLose) * 100)) : 0;
-                        return `${percentage.toFixed(0)}%`;
-                      })()}
-                    </span>
-                  </div>
-                  <div className="w-full bg-white bg-opacity-30 rounded-full h-4">
-                    <div 
-                      className="bg-white h-4 rounded-full transition-all duration-500"
-                      style={{
-                        width: `${(() => {
-                          const current = healthData[healthData.length - 1]?.weight || 0;
-                          const start = healthData[0]?.weight || current;
-                          const target = userProfile.targetWeight;
-                          const totalToLose = start - target;
-                          const lostSoFar = start - current;
-                          const percentage = totalToLose !== 0 ? Math.min(100, Math.max(0, (lostSoFar / totalToLose) * 100)) : 0;
-                          return percentage;
-                        })()}%`
-                      }}
-                    />
-                  </div>
-                  <div className="text-center mt-3 text-lg font-semibold">
-                    {(() => {
-                      const current = healthData[healthData.length - 1]?.weight || 0;
-                      const target = userProfile.targetWeight;
-                      const remaining = current - target;
-                      
-                      if (remaining > 0) {
-                        return `You have ${remaining.toFixed(1)} pounds to go to reach your goal! 💪`;
-                      } else if (remaining < 0) {
-                        return `🎉 Congratulations! You've exceeded your goal by ${Math.abs(remaining).toFixed(1)} pounds!`;
-                      } else {
-                        return `🎯 Perfect! You've reached your goal weight!`;
-                      }
-                    })()}
-                  </div>
+                        return percentage;
+                      })()}%`
+                    }}
+                  />
+                </div>
+                
+                <div className="text-center mt-2 text-xs font-medium text-gray-600">
+                  {(() => {
+                    const current = healthData[healthData.length - 1]?.weight || 0;
+                    const target = userProfile.targetWeight;
+                    const remaining = current - target;
+                    
+                    if (remaining > 0) {
+                      return `${remaining.toFixed(1)} lbs to goal 💪`;
+                    } else if (remaining < 0) {
+                      return `🎉 Goal exceeded by ${Math.abs(remaining).toFixed(1)} lbs!`;
+                    } else {
+                      return `🎯 Goal reached!`;
+                    }
+                  })()}
                 </div>
               </div>
             )}
 
-            {/* History Chart - THIRD */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-800">History</h2>
                 <select
                   value={selectedMetric}
                   onChange={(e) => setSelectedMetric(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-4 py-2"
+                  className="border border-gray-300 rounded-lg px-4 py-2 text-sm"
                 >
                   {Object.entries(metrics).map(([key, { label }]) => (
                     <option key={key} value={key}>{label}</option>
@@ -491,9 +532,10 @@ const HealthTrackerApp = () => {
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={healthData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
+                  <XAxis dataKey="date" style={{fontSize: '12px'}} />
                   <YAxis 
                     domain={selectedMetric === 'weight' ? [userProfile.targetWeight - 10, 'auto'] : ['auto', 'auto']}
+                    style={{fontSize: '12px'}}
                   />
                   <Tooltip />
                   <Legend />
@@ -543,7 +585,6 @@ const HealthTrackerApp = () => {
                   className="flex transition-transform duration-300 ease-out"
                   style={{ transform: `translateX(-${currentWeeklyCard * 100}%)` }}
                 >
-                  {/* Card 1 - Primary Metrics */}
                   <div className="w-full flex-shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-4 pr-2">
                     {metricsGroup1.map(([key, { label, unit }]) => {
                       const trend = getTrendIndicator(currentWeek[key], previousWeek[key]);
@@ -570,7 +611,6 @@ const HealthTrackerApp = () => {
                     })}
                   </div>
                   
-                  {/* Card 2 - Secondary Metrics */}
                   <div className="w-full flex-shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-4 pl-2">
                     {metricsGroup2.map(([key, { label, unit }]) => {
                       const trend = getTrendIndicator(currentWeek[key], previousWeek[key]);
@@ -596,192 +636,3 @@ const HealthTrackerApp = () => {
                       );
                     })}
                   </div>
-                </div>
-              </div>
-              
-              <div className="text-center mt-4 text-sm text-gray-500">
-                Swipe or tap dots to see more →
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'trends' && (
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Weekly Average Trends</h2>
-              <select
-                value={selectedMetric}
-                onChange={(e) => setSelectedMetric(e.target.value)}
-                className="border border-gray-300 rounded-lg px-4 py-2"
-              >
-                {Object.entries(metrics).map(([key, { label }]) => (
-                  <option key={key} value={key}>{label}</option>
-                ))}
-              </select>
-            </div>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={weeklyTrends}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="weekStart" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar 
-                  dataKey={selectedMetric} 
-                  fill="#3b82f6"
-                  name={`${metrics[selectedMetric].label} (Weekly Avg)`}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </div>
-
-      {showAddData && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Add Weight Measurement</h2>
-              <p className="text-sm text-gray-600 mb-6">All other metrics will be calculated automatically based on your profile</p>
-              
-              <div className="space-y-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                  <input
-                    type="date"
-                    value={newEntry.date}
-                    onChange={(e) => setNewEntry({...newEntry, date: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Weight (lbs)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={newEntry.weight}
-                    onChange={(e) => setNewEntry({...newEntry, weight: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-3 text-lg"
-                    placeholder="Enter weight"
-                    autoFocus
-                  />
-                </div>
-                
-                {newEntry.weight && (
-                  <div className="bg-blue-50 rounded-lg p-4 mt-4">
-                    <div className="text-sm font-medium text-gray-700 mb-2">Preview of calculated metrics:</div>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      {(() => {
-                        const preview = calculateMetrics(parseFloat(newEntry.weight));
-                        return (
-                          <>
-                            <div><span className="text-gray-600">BMI:</span> <span className="font-medium">{preview.bmi}</span></div>
-                            <div><span className="text-gray-600">Body Fat:</span> <span className="font-medium">{preview.bodyFat}%</span></div>
-                            <div><span className="text-gray-600">Muscle:</span> <span className="font-medium">{preview.muscleMass} lbs</span></div>
-                            <div><span className="text-gray-600">BMR:</span> <span className="font-medium">{preview.bmr} cal</span></div>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex space-x-3">
-                <button
-                  onClick={handleAddData}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition"
-                >
-                  Save Measurement
-                </button>
-                <button
-                  onClick={() => setShowAddData(false)}
-                  className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-medium hover:bg-gray-300 transition"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showProfile && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">User Profile</h2>
-              <p className="text-sm text-gray-600 mb-6">Your profile info is used to calculate body metrics</p>
-              
-              <div className="space-y-4 mb-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Height (feet)</label>
-                    <input
-                      type="number"
-                      min="3"
-                      max="8"
-                      value={userProfile.heightFeet}
-                      onChange={(e) => setUserProfile({...userProfile, heightFeet: parseInt(e.target.value) || 0})}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Height (inches)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="11"
-                      value={userProfile.heightInches}
-                      onChange={(e) => setUserProfile({...userProfile, heightInches: parseInt(e.target.value) || 0})}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
-                  <input
-                    type="number"
-                    value={userProfile.age}
-                    onChange={(e) => setUserProfile({...userProfile, age: parseInt(e.target.value)})}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                  <select
-                    value={userProfile.gender}
-                    onChange={(e) => setUserProfile({...userProfile, gender: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2"
-                  >
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Target Weight (lbs)</label>
-                  <input
-                    type="number"
-                    value={userProfile.targetWeight}
-                    onChange={(e) => setUserProfile({...userProfile, targetWeight: parseFloat(e.target.value)})}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2"
-                  />
-                </div>
-              </div>
-              
-              <button
-                onClick={() => setShowProfile(false)}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition"
-              >
-                Save Profile
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default HealthTrackerApp;
