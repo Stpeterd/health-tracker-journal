@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Scale, TrendingUp, TrendingDown, Calendar, Plus, Users, Activity, Download, Upload, FileText, Trash2 } from 'lucide-react';
+import { Scale, TrendingUp, TrendingDown, Calendar, Plus, Users, Activity, Download, Upload, FileText, Trash2, Edit2, AlertCircle } from 'lucide-react';
 
 const HealthTrackerApp = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -10,7 +10,9 @@ const HealthTrackerApp = () => {
   const [currentWeeklyCard, setCurrentWeeklyCard] = useState(0);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [newNote, setNewNote] = useState('');
+  const [editingNoteId, setEditingNoteId] = useState(null);
   const [showWeeklyHistory, setShowWeeklyHistory] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [selectedWeeklyMetric, setSelectedWeeklyMetric] = useState(null);
   
   const [userProfile, setUserProfile] = useState(() => {
@@ -202,22 +204,39 @@ const HealthTrackerApp = () => {
       return;
     }
 
-    const note = {
-      id: Date.now(),
-      text: newNote,
-      date: new Date().toISOString(),
-      displayDate: new Date().toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    };
+    if (editingNoteId) {
+      // Update existing note
+      setNotes(notes.map(note => 
+        note.id === editingNoteId 
+          ? { ...note, text: newNote, displayDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' (edited)' }
+          : note
+      ));
+      setEditingNoteId(null);
+    } else {
+      // Add new note
+      const note = {
+        id: Date.now(),
+        text: newNote,
+        date: new Date().toISOString(),
+        displayDate: new Date().toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric', 
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      };
+      setNotes([note, ...notes]);
+    }
 
-    setNotes([note, ...notes]);
     setNewNote('');
     setShowNoteModal(false);
+  };
+
+  const handleEditNote = (note) => {
+    setNewNote(note.text);
+    setEditingNoteId(note.id);
+    setShowNoteModal(true);
   };
 
   const handleDeleteNote = (id) => {
@@ -431,22 +450,22 @@ const HealthTrackerApp = () => {
               </div>
             )}
 
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-800">History</h2>
-                <select value={selectedMetric} onChange={(e) => setSelectedMetric(e.target.value)} className="border border-gray-300 rounded-lg px-4 py-2 text-sm">
+            <div className="bg-white rounded-xl shadow-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-gray-800">History</h2>
+                <select value={selectedMetric} onChange={(e) => setSelectedMetric(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-1 text-sm">
                   {Object.entries(metrics).map(([key, { label }]) => (
                     <option key={key} value={key}>{label}</option>
                   ))}
                 </select>
               </div>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={healthData}>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={healthData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" style={{fontSize: '12px'}} />
-                  <YAxis domain={selectedMetric === 'weight' ? [userProfile.targetWeight - 10, 'auto'] : ['auto', 'auto']} style={{fontSize: '12px'}} />
-                  <Tooltip />
-                  <Legend />
+                  <XAxis dataKey="date" style={{fontSize: '10px'}} angle={-45} textAnchor="end" height={60} />
+                  <YAxis domain={selectedMetric === 'weight' ? [userProfile.targetWeight - 10, 'auto'] : ['auto', 'auto']} style={{fontSize: '11px'}} width={40} />
+                  <Tooltip contentStyle={{fontSize: '12px'}} />
+                  <Legend wrapperStyle={{fontSize: '12px'}} />
                   <Bar dataKey={selectedMetric} fill="#3b82f6" name={metrics[selectedMetric].label} />
                   {selectedMetric === 'weight' && (
                     <Line type="monotone" dataKey={() => userProfile.targetWeight} stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" name="Target" />
@@ -508,23 +527,23 @@ const HealthTrackerApp = () => {
         )}
 
         {activeTab === 'trends' && (
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Weekly Average Trends</h2>
-              <select value={selectedMetric} onChange={(e) => setSelectedMetric(e.target.value)} className="border border-gray-300 rounded-lg px-4 py-2 text-sm">
+          <div className="bg-white rounded-xl shadow-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-gray-800">Weekly Trends</h2>
+              <select value={selectedMetric} onChange={(e) => setSelectedMetric(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-1 text-sm">
                 {Object.entries(metrics).map(([key, { label }]) => (
                   <option key={key} value={key}>{label}</option>
                 ))}
               </select>
             </div>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={weeklyTrends}>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={weeklyTrends} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="weekStart" style={{fontSize: '12px'}} />
-                <YAxis style={{fontSize: '12px'}} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey={selectedMetric} fill="#3b82f6" name={`${metrics[selectedMetric].label} (Weekly Avg)`} />
+                <XAxis dataKey="weekStart" style={{fontSize: '10px'}} angle={-45} textAnchor="end" height={60} />
+                <YAxis style={{fontSize: '11px'}} width={40} />
+                <Tooltip contentStyle={{fontSize: '12px'}} />
+                <Legend wrapperStyle={{fontSize: '12px'}} />
+                <Bar dataKey={selectedMetric} fill="#3b82f6" name={`${metrics[selectedMetric].label} (Avg)`} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -557,9 +576,14 @@ const HealthTrackerApp = () => {
                     <div key={note.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
                       <div className="flex justify-between items-start mb-2">
                         <span className="text-xs text-gray-500 font-medium">{note.displayDate}</span>
-                        <button onClick={() => handleDeleteNote(note.id)} className="text-red-500 hover:text-red-700 transition">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex space-x-2">
+                          <button onClick={() => handleEditNote(note)} className="text-blue-500 hover:text-blue-700 transition" title="Edit">
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleDeleteNote(note.id)} className="text-red-500 hover:text-red-700 transition" title="Delete">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                       <p className="text-gray-800 whitespace-pre-wrap">{note.text}</p>
                     </div>
@@ -568,18 +592,13 @@ const HealthTrackerApp = () => {
               </div>
             </div>
 
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-              <h3 className="font-bold text-yellow-800 mb-2 flex items-center space-x-2">
-                <span>⚠️</span>
-                <span>Calculation Disclaimer</span>
-              </h3>
-              <div className="text-sm text-yellow-800 space-y-2">
-                <p><strong>Body metrics are estimates:</strong> Body fat, muscle mass, BMR, and other calculations are based on the Jackson-Pollock equations and standard formulas. These are estimates and may not be 100% accurate for everyone.</p>
-                <p><strong>Not medical advice:</strong> This app is for informational and tracking purposes only. Always consult with a healthcare professional or registered dietitian before making significant changes to your diet or exercise routine.</p>
-                <p><strong>Individual variations:</strong> Body composition varies greatly between individuals. Factors like genetics, hydration, and hormones affect actual measurements.</p>
-                <p><strong>For best results:</strong> Use these metrics as trends over time rather than exact numbers. Consistency in tracking is key! 📊</p>
-              </div>
-            </div>
+            <button
+              onClick={() => setShowDisclaimer(true)}
+              className="w-full bg-gradient-to-r from-yellow-100 to-orange-100 border-2 border-yellow-300 rounded-xl p-4 hover:from-yellow-200 hover:to-orange-200 transition flex items-center justify-center space-x-2"
+            >
+              <span className="text-2xl">⚠️</span>
+              <span className="font-semibold text-yellow-800">View Calculation Disclaimer & Important Info</span>
+            </button>
           </div>
         )}
       </div>
@@ -588,7 +607,7 @@ const HealthTrackerApp = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
             <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Add Note</h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">{editingNoteId ? 'Edit Note' : 'Add Note'}</h2>
               <p className="text-sm text-gray-600 mb-4">Track diet changes, new exercises, or lifestyle adjustments</p>
               
               <div className="mb-6">
@@ -597,8 +616,10 @@ const HealthTrackerApp = () => {
               </div>
               
               <div className="flex space-x-3">
-                <button onClick={handleAddNote} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition">Save Note</button>
-                <button onClick={() => { setShowNoteModal(false); setNewNote(''); }} className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-medium hover:bg-gray-300 transition">Cancel</button>
+                <button onClick={handleAddNote} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition">
+                  {editingNoteId ? 'Update Note' : 'Save Note'}
+                </button>
+                <button onClick={() => { setShowNoteModal(false); setNewNote(''); setEditingNoteId(null); }} className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-medium hover:bg-gray-300 transition">Cancel</button>
               </div>
             </div>
           </div>
@@ -716,6 +737,58 @@ const HealthTrackerApp = () => {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDisclaimer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-yellow-800 flex items-center space-x-2">
+                  <span className="text-3xl">⚠️</span>
+                  <span>Important Disclaimer</span>
+                </h2>
+                <button onClick={() => setShowDisclaimer(false)} className="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+              </div>
+              
+              <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 mb-4">
+                <div className="text-sm text-yellow-900 space-y-3">
+                  <div>
+                    <h3 className="font-bold text-base mb-1">⚠️ Body Metrics Are Estimates</h3>
+                    <p>Body fat, muscle mass, BMR, and other calculations are based on the Jackson-Pollock equations and standard formulas. These are estimates and may not be 100% accurate for everyone.</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-bold text-base mb-1">🏥 Not Medical Advice</h3>
+                    <p>This app is for informational and tracking purposes only. Always consult with a healthcare professional or registered dietitian before making significant changes to your diet or exercise routine.</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-bold text-base mb-1">👤 Individual Variations</h3>
+                    <p>Body composition varies greatly between individuals. Factors like genetics, hydration, hormones, and overall health affect actual measurements.</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-bold text-base mb-1">📊 For Best Results</h3>
+                    <p>Use these metrics as trends over time rather than exact numbers. Consistency in tracking is key! Focus on the direction of change rather than specific values.</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-bold text-base mb-1">🔬 How We Calculate</h3>
+                    <p>We use the Jackson-Pollock 3-Site formula to estimate body fat percentage based on your weight, height, age, and gender. Other metrics like muscle mass, bone mass, and BMR are derived using scientifically-established formulas.</p>
+                  </div>
+                </div>
+              </div>
+              
+              <button
+                onClick={() => setShowDisclaimer(false)}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition"
+              >
+                I Understand
+              </button>
             </div>
           </div>
         </div>
