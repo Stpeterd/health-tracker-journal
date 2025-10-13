@@ -895,8 +895,8 @@ const HealthTrackerApp = () => {
                         const trend = getTrendIndicator(currentWeek[key], previousWeek[key]);
                         const TrendIcon = trend.icon;
                         return (
-                          <div key={key}
-                            className={`bg-gradient-to-br ${groupIndex === 0 ? 'from-blue-50 to-indigo-50 border-blue-100' : 'from-purple-50 to-pink-50 border-purple-100'} rounded-lg p-3 border-2`}>
+                          <button key={key} onClick={() => { setSelectedWeeklyMetric(key); setShowWeeklyHistory(true); }}
+                            className={`bg-gradient-to-br ${groupIndex === 0 ? 'from-blue-50 to-indigo-50 border-blue-100' : 'from-purple-50 to-pink-50 border-purple-100'} rounded-lg p-3 border-2 text-left hover:shadow-md transition`}>
                             <div className="text-xs text-gray-600 mb-1">{label}</div>
                             <div className="flex items-baseline justify-between">
                               <div className="text-xl font-bold text-gray-800">{currentWeek[key]} <span className="text-xs font-normal text-gray-500">{unit}</span></div>
@@ -908,7 +908,8 @@ const HealthTrackerApp = () => {
                               )}
                             </div>
                             <div className="text-xs text-gray-500 mt-1">Last week: {previousWeek[key]} {unit}</div>
-                          </div>
+                            <div className={`text-xs mt-1 ${groupIndex === 0 ? 'text-blue-600' : 'text-purple-600'}`}>Tap for history →</div>
+                          </button>
                         );
                       })}
                     </div>
@@ -1221,6 +1222,62 @@ const HealthTrackerApp = () => {
               </div>
               
               <button onClick={() => setShowDisclaimer(false)} className="w-full mt-4 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition">I Understand</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showWeeklyHistory && selectedWeeklyMetric && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-800">{metrics[selectedWeeklyMetric].label} - Weekly History</h2>
+                <button onClick={() => setShowWeeklyHistory(false)} className="text-gray-500 hover:text-gray-700">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={weeklyTrends} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="weekStart" style={{fontSize: '11px'}} angle={-45} textAnchor="end" height={80} />
+                  <YAxis style={{fontSize: '11px'}} />
+                  <Tooltip contentStyle={{fontSize: '12px'}} />
+                  <Legend wrapperStyle={{fontSize: '12px'}} />
+                  <Line type="monotone" dataKey={selectedWeeklyMetric} stroke="#3b82f6" strokeWidth={2} name={metrics[selectedWeeklyMetric].label} dot={{ r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+
+              {weeklyTrends.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="font-semibold text-gray-700 mb-2">Summary:</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-blue-50 rounded-lg p-3">
+                      <div className="text-xs text-gray-600">Current Week</div>
+                      <div className="text-lg font-bold text-blue-600">{currentWeek[selectedWeeklyMetric]} {metrics[selectedWeeklyMetric].unit}</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="text-xs text-gray-600">Last Week</div>
+                      <div className="text-lg font-bold text-gray-700">{previousWeek[selectedWeeklyMetric]} {metrics[selectedWeeklyMetric].unit}</div>
+                    </div>
+                    <div className="bg-green-50 rounded-lg p-3">
+                      <div className="text-xs text-gray-600">Lowest</div>
+                      <div className="text-lg font-bold text-green-600">
+                        {Math.min(...weeklyTrends.map(w => w[selectedWeeklyMetric])).toFixed(1)} {metrics[selectedWeeklyMetric].unit}
+                      </div>
+                    </div>
+                    <div className="bg-purple-50 rounded-lg p-3">
+                      <div className="text-xs text-gray-600">Highest</div>
+                      <div className="text-lg font-bold text-purple-600">
+                        {Math.max(...weeklyTrends.map(w => w[selectedWeeklyMetric])).toFixed(1)} {metrics[selectedWeeklyMetric].unit}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
