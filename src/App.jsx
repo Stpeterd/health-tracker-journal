@@ -1229,10 +1229,10 @@ const HealthTrackerApp = () => {
 
       {showWeeklyHistory && selectedWeeklyMetric && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-800">{metrics[selectedWeeklyMetric].label} - Weekly History</h2>
+                <h2 className="text-xl font-bold text-gray-800">{metrics[selectedWeeklyMetric].label} History</h2>
                 <button onClick={() => setShowWeeklyHistory(false)} className="text-gray-500 hover:text-gray-700">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1240,29 +1240,57 @@ const HealthTrackerApp = () => {
                 </button>
               </div>
               
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={weeklyTrends} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="weekStart" style={{fontSize: '11px'}} angle={-45} textAnchor="end" height={80} />
-                  <YAxis style={{fontSize: '11px'}} />
-                  <Tooltip contentStyle={{fontSize: '12px'}} />
-                  <Legend wrapperStyle={{fontSize: '12px'}} />
-                  <Line type="monotone" dataKey={selectedWeeklyMetric} stroke="#3b82f6" strokeWidth={2} name={metrics[selectedWeeklyMetric].label} dot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
+              <div className="space-y-3">
+                {weeklyTrends.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">No weekly data yet. Add more weight entries to see trends!</p>
+                ) : (
+                  weeklyTrends.slice().reverse().map((week, index) => {
+                    const weekNum = weeklyTrends.length - index;
+                    const isCurrentWeek = index === 0;
+                    return (
+                      <div key={index} className={`${isCurrentWeek ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4`}>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <div className="text-sm font-semibold text-gray-800">
+                              {isCurrentWeek ? '📍 Current Week' : `Week ${weekNum}`}
+                            </div>
+                            <div className="text-xs text-gray-600">{week.weekStart} - {week.weekEnd}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className={`text-2xl font-bold ${isCurrentWeek ? 'text-blue-600' : 'text-gray-800'}`}>
+                              {week[selectedWeeklyMetric]} 
+                              <span className="text-sm font-normal text-gray-500 ml-1">
+                                {metrics[selectedWeeklyMetric].unit}
+                              </span>
+                            </div>
+                            {index < weeklyTrends.length - 1 && (
+                              <div className="text-xs mt-1">
+                                {(() => {
+                                  const current = week[selectedWeeklyMetric];
+                                  const previous = weeklyTrends[weeklyTrends.length - index - 2][selectedWeeklyMetric];
+                                  const diff = current - previous;
+                                  if (diff > 0) {
+                                    return <span className="text-red-500">▲ +{diff.toFixed(1)}</span>;
+                                  } else if (diff < 0) {
+                                    return <span className="text-green-500">▼ {diff.toFixed(1)}</span>;
+                                  } else {
+                                    return <span className="text-gray-500">— No change</span>;
+                                  }
+                                })()}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
 
               {weeklyTrends.length > 0 && (
-                <div className="mt-4">
-                  <h3 className="font-semibold text-gray-700 mb-2">Summary:</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="bg-blue-50 rounded-lg p-3">
-                      <div className="text-xs text-gray-600">Current Week</div>
-                      <div className="text-lg font-bold text-blue-600">{currentWeek[selectedWeeklyMetric]} {metrics[selectedWeeklyMetric].unit}</div>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="text-xs text-gray-600">Last Week</div>
-                      <div className="text-lg font-bold text-gray-700">{previousWeek[selectedWeeklyMetric]} {metrics[selectedWeeklyMetric].unit}</div>
-                    </div>
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <h3 className="font-semibold text-gray-700 mb-3 text-sm">Overall Stats</h3>
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="bg-green-50 rounded-lg p-3">
                       <div className="text-xs text-gray-600">Lowest</div>
                       <div className="text-lg font-bold text-green-600">
