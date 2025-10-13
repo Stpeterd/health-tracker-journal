@@ -446,7 +446,7 @@ const HealthTrackerApp = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `health-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+                      a.download = `health-tracker-journal-backup-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -482,7 +482,7 @@ const HealthTrackerApp = () => {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center space-x-2 md:space-x-3">
               <Scale className="w-6 h-6 md:w-8 md:h-8" />
-              <h1 className="text-lg md:text-2xl font-bold">Health Tracker Pro</h1>
+              <h1 className="text-lg md:text-2xl font-bold">Health Tracker Journal</h1>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <button onClick={handleExportData} className="bg-white bg-opacity-20 text-white p-2 rounded-lg hover:bg-opacity-30 transition" title="Export">
@@ -508,7 +508,7 @@ const HealthTrackerApp = () => {
       <div className="bg-white shadow-md">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex space-x-6 overflow-x-auto">
-            {['dashboard', 'activity', 'nutrition', 'weekly', 'trends', 'notes'].map(tab => (
+            {['dashboard', 'activity', 'nutrition', 'weekly', 'notes'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -617,94 +617,6 @@ const HealthTrackerApp = () => {
                 </div>
               </div>
             )}
-
-            <div className="bg-white rounded-xl shadow-lg p-3">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-bold text-gray-800 flex items-center space-x-2 text-sm">
-                  <Droplets className="w-4 h-4 text-blue-500" />
-                  <span>Water Today</span>
-                </h3>
-                <span className="text-xs font-medium text-gray-600">{getTodayWater().total}/{getTodayWater().goal}oz</span>
-              </div>
-              
-              <div className="relative h-10 bg-gray-200 rounded-full overflow-hidden mb-2">
-                <div 
-                  className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-500 flex items-center justify-center"
-                  style={{ width: `${Math.min((getTodayWater().total / getTodayWater().goal) * 100, 100)}%` }}
-                >
-                  {getTodayWater().total >= getTodayWater().goal && (
-                    <span className="text-white font-bold text-xs">Goal! 🎉</span>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex gap-2">
-                <button onClick={() => addWater(8)} className="flex-1 bg-blue-100 text-blue-700 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-200 transition">+8oz</button>
-                <button onClick={() => addWater(16)} className="flex-1 bg-blue-100 text-blue-700 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-200 transition">+16oz</button>
-                <button onClick={() => addWater(32)} className="flex-1 bg-blue-100 text-blue-700 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-200 transition">+32oz</button>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-lg p-3">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-bold text-gray-800 flex items-center space-x-2 text-sm">
-                  <Dumbbell className="w-4 h-4 text-orange-500" />
-                  <span>Today's Activity</span>
-                </h3>
-                <button onClick={() => setShowExerciseModal(true)} className="bg-orange-600 text-white px-2 py-1 rounded-lg text-xs hover:bg-orange-700 transition">
-                  + Log
-                </button>
-              </div>
-              
-              {getTodayExercises().length === 0 ? (
-                <p className="text-xs text-gray-500 text-center py-2">No exercises logged</p>
-              ) : (
-                <div className="space-y-1">
-                  {getTodayExercises().slice(0, 2).map(ex => (
-                    <div key={ex.id} className="bg-orange-50 rounded-lg p-2 text-xs">
-                      <div className="font-medium text-gray-800">{ex.type.charAt(0).toUpperCase() + ex.type.slice(1)} - {ex.duration}min</div>
-                      {ex.notes && <div className="text-xs text-gray-600 truncate">{ex.notes}</div>}
-                    </div>
-                  ))}
-                  {getTodayExercises().length > 2 && (
-                    <div className="text-xs text-center text-gray-500">+{getTodayExercises().length - 2} more</div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="bg-white rounded-xl shadow-lg p-3">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-bold text-gray-800 flex items-center space-x-2 text-sm">
-                  <Utensils className="w-4 h-4 text-green-500" />
-                  <span>Today's Meals</span>
-                </h3>
-                <button onClick={() => setShowMealModal(true)} className="bg-green-600 text-white px-2 py-1 rounded-lg text-xs hover:bg-green-700 transition">
-                  + Log
-                </button>
-              </div>
-              
-              <div className="mb-2">
-                <span className="text-xs text-gray-600">Total Calories: </span>
-                <span className="text-base font-bold text-green-600">{getTodayCalories()}</span>
-              </div>
-              
-              {getTodayMeals().length === 0 ? (
-                <p className="text-xs text-gray-500 text-center py-2">No meals logged</p>
-              ) : (
-                <div className="space-y-1">
-                  {getTodayMeals().slice(0, 2).map(meal => (
-                    <div key={meal.id} className="bg-green-50 rounded-lg p-2 text-xs">
-                      <div className="font-medium text-gray-800">{meal.name} ({meal.calories || 0} cal)</div>
-                      <div className="text-xs text-gray-600">{meal.type.charAt(0).toUpperCase() + meal.type.slice(1)}</div>
-                    </div>
-                  ))}
-                  {getTodayMeals().length > 2 && (
-                    <div className="text-xs text-center text-gray-500">+{getTodayMeals().length - 2} more</div>
-                  )}
-                </div>
-              )}
-            </div>
 
             <div className="bg-white rounded-xl shadow-lg p-4">
               <div className="flex items-center justify-between mb-3">
@@ -919,29 +831,6 @@ const HealthTrackerApp = () => {
               
               <div className="text-center mt-3 text-xs text-gray-500">Swipe or tap dots →</div>
             </div>
-          </div>
-        )}
-
-        {activeTab === 'trends' && (
-          <div className="bg-white rounded-xl shadow-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-bold text-gray-800">Weekly Trends</h2>
-              <select value={selectedMetric} onChange={(e) => setSelectedMetric(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-1 text-xs">
-                {Object.entries(metrics).map(([key, { label }]) => (
-                  <option key={key} value={key}>{label}</option>
-                ))}
-              </select>
-            </div>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={weeklyTrends} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="weekStart" style={{fontSize: '10px'}} angle={-45} textAnchor="end" height={60} />
-                <YAxis style={{fontSize: '11px'}} width={40} />
-                <Tooltip contentStyle={{fontSize: '12px'}} />
-                <Legend wrapperStyle={{fontSize: '12px'}} />
-                <Bar dataKey={selectedMetric} fill="#3b82f6" name={`${metrics[selectedMetric].label} (Avg)`} />
-              </BarChart>
-            </ResponsiveContainer>
           </div>
         )}
 
