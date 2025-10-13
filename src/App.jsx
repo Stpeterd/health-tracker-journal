@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Scale, TrendingUp, TrendingDown, Calendar, Plus, Users, Activity, Download, Upload, FileText, Trash2, Edit2, AlertCircle } from 'lucide-react';
+import { Scale, TrendingUp, TrendingDown, Calendar, Plus, Users, Activity, Download, Upload, FileText, Trash2, Edit2, AlertCircle, Droplets, Dumbbell, Utensils } from 'lucide-react';
 
 const HealthTrackerApp = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -14,10 +14,22 @@ const HealthTrackerApp = () => {
   const [showWeeklyHistory, setShowWeeklyHistory] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [selectedWeeklyMetric, setSelectedWeeklyMetric] = useState(null);
+  const [showExerciseModal, setShowExerciseModal] = useState(false);
+  const [showMealModal, setShowMealModal] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   
   const [userProfile, setUserProfile] = useState(() => {
-    const saved = localStorage.getItem('healthTrackerProfile');
-    return saved ? JSON.parse(saved) : {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('healthTrackerProfile');
+      return saved ? JSON.parse(saved) : {
+        heightFeet: 5,
+        heightInches: 10,
+        age: 30,
+        gender: 'male',
+        targetWeight: 170
+      };
+    }
+    return {
       heightFeet: 5,
       heightInches: 10,
       age: 30,
@@ -26,34 +38,101 @@ const HealthTrackerApp = () => {
     };
   });
 
-  const [showProfile, setShowProfile] = useState(false);
-
   const [newEntry, setNewEntry] = useState({
     date: new Date().toISOString().split('T')[0],
     weight: ''
   });
 
   const [healthData, setHealthData] = useState(() => {
-    const saved = localStorage.getItem('healthTrackerData');
-    return saved ? JSON.parse(saved) : [];
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('healthTrackerData');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
   });
 
   const [notes, setNotes] = useState(() => {
-    const saved = localStorage.getItem('healthTrackerNotes');
-    return saved ? JSON.parse(saved) : [];
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('healthTrackerNotes');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+
+  const [waterIntake, setWaterIntake] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('healthTrackerWater');
+      return saved ? JSON.parse(saved) : {};
+    }
+    return {};
+  });
+
+  const [exercises, setExercises] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('healthTrackerExercises');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+
+  const [meals, setMeals] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('healthTrackerMeals');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+
+  const [newExercise, setNewExercise] = useState({
+    type: 'cardio',
+    duration: '',
+    intensity: 'medium',
+    calories: '',
+    notes: ''
+  });
+  
+  const [newMeal, setNewMeal] = useState({
+    type: 'breakfast',
+    name: '',
+    calories: '',
+    notes: ''
   });
 
   useEffect(() => {
-    localStorage.setItem('healthTrackerProfile', JSON.stringify(userProfile));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('healthTrackerProfile', JSON.stringify(userProfile));
+    }
   }, [userProfile]);
 
   useEffect(() => {
-    localStorage.setItem('healthTrackerData', JSON.stringify(healthData));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('healthTrackerData', JSON.stringify(healthData));
+    }
   }, [healthData]);
 
   useEffect(() => {
-    localStorage.setItem('healthTrackerNotes', JSON.stringify(notes));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('healthTrackerNotes', JSON.stringify(notes));
+    }
   }, [notes]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('healthTrackerWater', JSON.stringify(waterIntake));
+    }
+  }, [waterIntake]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('healthTrackerExercises', JSON.stringify(exercises));
+    }
+  }, [exercises]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('healthTrackerMeals', JSON.stringify(meals));
+    }
+  }, [meals]);
 
   const metrics = {
     weight: { label: 'Weight', unit: 'lbs', icon: Scale, group: 1 },
@@ -198,6 +277,43 @@ const HealthTrackerApp = () => {
     return { icon: null, color: 'text-gray-500', text: '0' };
   };
 
+  const getTodayWater = () => {
+    const today = new Date().toISOString().split('T')[0];
+    return waterIntake[today] || { total: 0, goal: 64, entries: [] };
+  };
+
+  const addWater = (amount) => {
+    const today = new Date().toISOString().split('T')[0];
+    const currentData = getTodayWater();
+    const newEntry = {
+      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      amount: amount
+    };
+    
+    setWaterIntake({
+      ...waterIntake,
+      [today]: {
+        ...currentData,
+        total: currentData.total + amount,
+        entries: [...currentData.entries, newEntry]
+      }
+    });
+  };
+
+  const getTodayExercises = () => {
+    const today = new Date().toISOString().split('T')[0];
+    return exercises.filter(ex => ex.date === today);
+  };
+
+  const getTodayMeals = () => {
+    const today = new Date().toISOString().split('T')[0];
+    return meals.filter(m => m.date === today);
+  };
+
+  const getTodayCalories = () => {
+    return getTodayMeals().reduce((sum, meal) => sum + (parseInt(meal.calories) || 0), 0);
+  };
+
   const handleAddNote = () => {
     if (!newNote.trim()) {
       alert('Please enter a note');
@@ -205,7 +321,6 @@ const HealthTrackerApp = () => {
     }
 
     if (editingNoteId) {
-      // Update existing note
       setNotes(notes.map(note => 
         note.id === editingNoteId 
           ? { ...note, text: newNote, displayDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' (edited)' }
@@ -213,7 +328,6 @@ const HealthTrackerApp = () => {
       ));
       setEditingNoteId(null);
     } else {
-      // Add new note
       const note = {
         id: Date.now(),
         text: newNote,
@@ -242,6 +356,54 @@ const HealthTrackerApp = () => {
   const handleDeleteNote = (id) => {
     if (window.confirm('Delete this note?')) {
       setNotes(notes.filter(note => note.id !== id));
+    }
+  };
+
+  const handleAddExercise = () => {
+    if (!newExercise.duration) {
+      alert('Please enter duration');
+      return;
+    }
+
+    const exercise = {
+      id: Date.now(),
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      ...newExercise
+    };
+
+    setExercises([exercise, ...exercises]);
+    setNewExercise({ type: 'cardio', duration: '', intensity: 'medium', calories: '', notes: '' });
+    setShowExerciseModal(false);
+  };
+
+  const handleDeleteExercise = (id) => {
+    if (window.confirm('Delete this exercise?')) {
+      setExercises(exercises.filter(ex => ex.id !== id));
+    }
+  };
+
+  const handleAddMeal = () => {
+    if (!newMeal.name) {
+      alert('Please enter meal name');
+      return;
+    }
+
+    const meal = {
+      id: Date.now(),
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      ...newMeal
+    };
+
+    setMeals([meal, ...meals]);
+    setNewMeal({ type: 'breakfast', name: '', calories: '', notes: '' });
+    setShowMealModal(false);
+  };
+
+  const handleDeleteMeal = (id) => {
+    if (window.confirm('Delete this meal?')) {
+      setMeals(meals.filter(m => m.id !== id));
     }
   };
 
@@ -274,6 +436,9 @@ const HealthTrackerApp = () => {
       profile: userProfile,
       healthData: healthData,
       notes: notes,
+      waterIntake: waterIntake,
+      exercises: exercises,
+      meals: meals,
       exportDate: new Date().toISOString()
     };
     
@@ -299,6 +464,9 @@ const HealthTrackerApp = () => {
         if (imported.profile) setUserProfile(imported.profile);
         if (imported.healthData) setHealthData(imported.healthData);
         if (imported.notes) setNotes(imported.notes);
+        if (imported.waterIntake) setWaterIntake(imported.waterIntake);
+        if (imported.exercises) setExercises(imported.exercises);
+        if (imported.meals) setMeals(imported.meals);
         alert('Data imported successfully!');
       } catch (error) {
         alert('Error importing data');
@@ -339,16 +507,16 @@ const HealthTrackerApp = () => {
 
       <div className="bg-white shadow-md">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="flex space-x-8 overflow-x-auto">
-            {['dashboard', 'weekly', 'trends', 'notes'].map(tab => (
+          <div className="flex space-x-6 overflow-x-auto">
+            {['dashboard', 'activity', 'nutrition', 'weekly', 'trends', 'notes'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`py-4 px-2 border-b-2 font-medium transition whitespace-nowrap ${
+                className={`py-4 px-2 border-b-2 font-medium transition whitespace-nowrap text-sm ${
                   activeTab === tab ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-800'
                 }`}
               >
-                {tab.charAt(0).toUpperCase() + tab.slice(1).replace('weekly', 'Weekly Averages')}
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
             ))}
           </div>
@@ -357,10 +525,10 @@ const HealthTrackerApp = () => {
 
       <div className="max-w-6xl mx-auto p-4 pb-20">
         {activeTab === 'dashboard' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Current Measurements</h2>
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl shadow-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-gray-800">Current Measurements</h2>
                 <div className="flex space-x-2">
                   {[0, 1].map(i => (
                     <button key={i} onClick={() => setCurrentDashboardCard(i)} className={`w-2 h-2 rounded-full transition ${currentDashboardCard === i ? 'bg-blue-600' : 'bg-gray-300'}`} />
@@ -371,13 +539,13 @@ const HealthTrackerApp = () => {
               <div className="overflow-hidden">
                 <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentDashboardCard * 100}%)` }}>
                   {[metricsGroup1, metricsGroup2].map((group, groupIndex) => (
-                    <div key={groupIndex} className={`w-full flex-shrink-0 grid grid-cols-2 gap-4 ${groupIndex === 0 ? 'pr-2' : 'pl-2'}`}>
+                    <div key={groupIndex} className={`w-full flex-shrink-0 grid grid-cols-2 gap-3 ${groupIndex === 0 ? 'pr-2' : 'pl-2'}`}>
                       {group.map(([key, { label, unit }]) => {
                         const latestValue = healthData[healthData.length - 1]?.[key] || 0;
                         return (
-                          <div key={key} className={`bg-gradient-to-br ${groupIndex === 0 ? 'from-blue-50 to-indigo-50' : 'from-purple-50 to-pink-50'} rounded-lg p-4`}>
-                            <div className="text-sm text-gray-600 mb-1">{label}</div>
-                            <div className="text-2xl font-bold text-gray-800">{latestValue} <span className="text-sm font-normal text-gray-500">{unit}</span></div>
+                          <div key={key} className={`bg-gradient-to-br ${groupIndex === 0 ? 'from-blue-50 to-indigo-50' : 'from-purple-50 to-pink-50'} rounded-lg p-3`}>
+                            <div className="text-xs text-gray-600 mb-1">{label}</div>
+                            <div className="text-xl font-bold text-gray-800">{latestValue} <span className="text-xs font-normal text-gray-500">{unit}</span></div>
                           </div>
                         );
                       })}
@@ -386,17 +554,17 @@ const HealthTrackerApp = () => {
                 </div>
               </div>
               
-              <div className="text-center mt-4 text-sm text-gray-500">Swipe or tap dots →</div>
+              <div className="text-center mt-3 text-xs text-gray-500">Swipe or tap dots →</div>
             </div>
 
             {healthData.length > 0 && (
-              <div className="bg-white rounded-xl shadow-lg p-4">
-                <div className="flex items-center justify-between mb-3">
+              <div className="bg-white rounded-xl shadow-lg p-3">
+                <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center space-x-2">
-                    <Scale className="w-5 h-5 text-blue-600" />
-                    <h3 className="font-bold text-gray-800">Goal Progress</h3>
+                    <Scale className="w-4 h-4 text-blue-600" />
+                    <h3 className="font-bold text-gray-800 text-sm">Goal Progress</h3>
                   </div>
-                  <div className="text-sm font-medium text-gray-600">
+                  <div className="text-xs font-medium text-gray-600">
                     {(() => {
                       const current = healthData[healthData.length - 1]?.weight || 0;
                       const start = healthData[0]?.weight || current;
@@ -409,23 +577,23 @@ const HealthTrackerApp = () => {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="grid grid-cols-3 gap-2 mb-2">
                   <div className="text-center">
                     <div className="text-xs text-gray-500">Current</div>
-                    <div className="text-lg font-bold text-gray-800">{healthData[healthData.length - 1]?.weight || 0}</div>
+                    <div className="text-base font-bold text-gray-800">{healthData[healthData.length - 1]?.weight || 0}</div>
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-gray-500">Goal</div>
-                    <div className="text-lg font-bold text-blue-600">{userProfile.targetWeight}</div>
+                    <div className="text-base font-bold text-blue-600">{userProfile.targetWeight}</div>
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-gray-500">To Go</div>
-                    <div className="text-lg font-bold text-green-600">{Math.abs((healthData[healthData.length - 1]?.weight || 0) - userProfile.targetWeight).toFixed(1)}</div>
+                    <div className="text-base font-bold text-green-600">{Math.abs((healthData[healthData.length - 1]?.weight || 0) - userProfile.targetWeight).toFixed(1)}</div>
                   </div>
                 </div>
                 
-                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                  <div className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500" style={{
+                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                  <div className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-500" style={{
                     width: `${(() => {
                       const current = healthData[healthData.length - 1]?.weight || 0;
                       const start = healthData[0]?.weight || current;
@@ -450,10 +618,98 @@ const HealthTrackerApp = () => {
               </div>
             )}
 
+            <div className="bg-white rounded-xl shadow-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-gray-800 flex items-center space-x-2 text-sm">
+                  <Droplets className="w-4 h-4 text-blue-500" />
+                  <span>Water Today</span>
+                </h3>
+                <span className="text-xs font-medium text-gray-600">{getTodayWater().total}/{getTodayWater().goal}oz</span>
+              </div>
+              
+              <div className="relative h-10 bg-gray-200 rounded-full overflow-hidden mb-2">
+                <div 
+                  className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-500 flex items-center justify-center"
+                  style={{ width: `${Math.min((getTodayWater().total / getTodayWater().goal) * 100, 100)}%` }}
+                >
+                  {getTodayWater().total >= getTodayWater().goal && (
+                    <span className="text-white font-bold text-xs">Goal! 🎉</span>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <button onClick={() => addWater(8)} className="flex-1 bg-blue-100 text-blue-700 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-200 transition">+8oz</button>
+                <button onClick={() => addWater(16)} className="flex-1 bg-blue-100 text-blue-700 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-200 transition">+16oz</button>
+                <button onClick={() => addWater(32)} className="flex-1 bg-blue-100 text-blue-700 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-200 transition">+32oz</button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-gray-800 flex items-center space-x-2 text-sm">
+                  <Dumbbell className="w-4 h-4 text-orange-500" />
+                  <span>Today's Activity</span>
+                </h3>
+                <button onClick={() => setShowExerciseModal(true)} className="bg-orange-600 text-white px-2 py-1 rounded-lg text-xs hover:bg-orange-700 transition">
+                  + Log
+                </button>
+              </div>
+              
+              {getTodayExercises().length === 0 ? (
+                <p className="text-xs text-gray-500 text-center py-2">No exercises logged</p>
+              ) : (
+                <div className="space-y-1">
+                  {getTodayExercises().slice(0, 2).map(ex => (
+                    <div key={ex.id} className="bg-orange-50 rounded-lg p-2 text-xs">
+                      <div className="font-medium text-gray-800">{ex.type.charAt(0).toUpperCase() + ex.type.slice(1)} - {ex.duration}min</div>
+                      {ex.notes && <div className="text-xs text-gray-600 truncate">{ex.notes}</div>}
+                    </div>
+                  ))}
+                  {getTodayExercises().length > 2 && (
+                    <div className="text-xs text-center text-gray-500">+{getTodayExercises().length - 2} more</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-xl shadow-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-gray-800 flex items-center space-x-2 text-sm">
+                  <Utensils className="w-4 h-4 text-green-500" />
+                  <span>Today's Meals</span>
+                </h3>
+                <button onClick={() => setShowMealModal(true)} className="bg-green-600 text-white px-2 py-1 rounded-lg text-xs hover:bg-green-700 transition">
+                  + Log
+                </button>
+              </div>
+              
+              <div className="mb-2">
+                <span className="text-xs text-gray-600">Total Calories: </span>
+                <span className="text-base font-bold text-green-600">{getTodayCalories()}</span>
+              </div>
+              
+              {getTodayMeals().length === 0 ? (
+                <p className="text-xs text-gray-500 text-center py-2">No meals logged</p>
+              ) : (
+                <div className="space-y-1">
+                  {getTodayMeals().slice(0, 2).map(meal => (
+                    <div key={meal.id} className="bg-green-50 rounded-lg p-2 text-xs">
+                      <div className="font-medium text-gray-800">{meal.name} ({meal.calories || 0} cal)</div>
+                      <div className="text-xs text-gray-600">{meal.type.charAt(0).toUpperCase() + meal.type.slice(1)}</div>
+                    </div>
+                  ))}
+                  {getTodayMeals().length > 2 && (
+                    <div className="text-xs text-center text-gray-500">+{getTodayMeals().length - 2} more</div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="bg-white rounded-xl shadow-lg p-4">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg font-bold text-gray-800">History</h2>
-                <select value={selectedMetric} onChange={(e) => setSelectedMetric(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-1 text-sm">
+                <select value={selectedMetric} onChange={(e) => setSelectedMetric(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-1 text-xs">
                   {Object.entries(metrics).map(([key, { label }]) => (
                     <option key={key} value={key}>{label}</option>
                   ))}
@@ -476,12 +732,152 @@ const HealthTrackerApp = () => {
           </div>
         )}
 
+        {activeTab === 'activity' && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl shadow-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-gray-800 flex items-center space-x-2">
+                  <Dumbbell className="w-5 h-5 text-orange-500" />
+                  <span>Exercise Log</span>
+                </h2>
+                <button onClick={() => setShowExerciseModal(true)} className="bg-orange-600 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-orange-700 transition text-sm">
+                  <Plus className="w-4 h-4" />
+                  <span>Add</span>
+                </button>
+              </div>
+              
+              <div className="space-y-2">
+                {exercises.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <Dumbbell className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No exercises logged yet</p>
+                  </div>
+                ) : (
+                  exercises.map((ex) => (
+                    <div key={ex.id} className="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg p-3 border border-orange-100">
+                      <div className="flex justify-between items-start mb-1">
+                        <div>
+                          <span className="text-xs text-gray-500 font-medium">{ex.date} • {ex.time}</span>
+                          <div className="font-bold text-gray-800 text-sm mt-1">{ex.type.charAt(0).toUpperCase() + ex.type.slice(1)}</div>
+                        </div>
+                        <button onClick={() => handleDeleteExercise(ex.id)} className="text-red-500 hover:text-red-700 transition">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div><span className="text-gray-600">Duration:</span> <span className="font-medium">{ex.duration}min</span></div>
+                        <div><span className="text-gray-600">Intensity:</span> <span className="font-medium">{ex.intensity}</span></div>
+                        {ex.calories && <div><span className="text-gray-600">Calories:</span> <span className="font-medium">{ex.calories}</span></div>}
+                      </div>
+                      {ex.notes && <p className="text-xs text-gray-700 mt-1">{ex.notes}</p>}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'nutrition' && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl shadow-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-gray-800 flex items-center space-x-2">
+                  <Utensils className="w-5 h-5 text-green-500" />
+                  <span>Meal Log</span>
+                </h2>
+                <button onClick={() => setShowMealModal(true)} className="bg-green-600 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-green-700 transition text-sm">
+                  <Plus className="w-4 h-4" />
+                  <span>Add</span>
+                </button>
+              </div>
+              
+              <div className="bg-green-50 rounded-lg p-3 mb-3">
+                <div className="text-center">
+                  <div className="text-xs text-gray-600">Today's Calories</div>
+                  <div className="text-2xl font-bold text-green-600">{getTodayCalories()}</div>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                {meals.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <Utensils className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No meals logged yet</p>
+                  </div>
+                ) : (
+                  meals.map((meal) => (
+                    <div key={meal.id} className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-100">
+                      <div className="flex justify-between items-start mb-1">
+                        <div>
+                          <span className="text-xs text-gray-500 font-medium">{meal.date} • {meal.time}</span>
+                          <div className="font-bold text-gray-800 text-sm mt-1">{meal.name}</div>
+                        </div>
+                        <button onClick={() => handleDeleteMeal(meal.id)} className="text-red-500 hover:text-red-700 transition">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="flex gap-3 text-xs">
+                        <div><span className="text-gray-600">Type:</span> <span className="font-medium">{meal.type.charAt(0).toUpperCase() + meal.type.slice(1)}</span></div>
+                        <div><span className="text-gray-600">Calories:</span> <span className="font-medium text-green-600">{meal.calories || 0}</span></div>
+                      </div>
+                      {meal.notes && <p className="text-xs text-gray-700 mt-1">{meal.notes}</p>}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-gray-800 flex items-center space-x-2">
+                  <Droplets className="w-5 h-5 text-blue-500" />
+                  <span>Water Intake</span>
+                </h2>
+              </div>
+              
+              <div className="mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600">Today's Progress</span>
+                  <span className="text-sm font-medium">{getTodayWater().total}oz / {getTodayWater().goal}oz</span>
+                </div>
+                <div className="relative h-6 bg-gray-200 rounded-full overflow-hidden">
+                  <div 
+                    className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-500"
+                    style={{ width: `${Math.min((getTodayWater().total / getTodayWater().goal) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+              
+              <div className="flex gap-2 mb-3">
+                <button onClick={() => addWater(8)} className="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg font-medium hover:bg-blue-200 transition text-sm">+8oz</button>
+                <button onClick={() => addWater(16)} className="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg font-medium hover:bg-blue-200 transition text-sm">+16oz</button>
+                <button onClick={() => addWater(32)} className="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg font-medium hover:bg-blue-200 transition text-sm">+32oz</button>
+              </div>
+              
+              {getTodayWater().entries.length > 0 && (
+                <div>
+                  <h3 className="font-medium text-gray-700 mb-2 text-sm">Today's Log:</h3>
+                  <div className="space-y-1">
+                    {getTodayWater().entries.map((entry, index) => (
+                      <div key={index} className="flex justify-between text-sm bg-blue-50 rounded px-3 py-2">
+                        <span className="text-gray-600">{entry.time}</span>
+                        <span className="font-medium text-blue-600">+{entry.amount}oz</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {activeTab === 'weekly' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-800 flex items-center space-x-2">
-                  <Calendar className="w-6 h-6" />
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl shadow-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-gray-800 flex items-center space-x-2">
+                  <Calendar className="w-5 h-5" />
                   <span>Weekly Averages</span>
                 </h2>
                 <div className="flex space-x-2">
@@ -494,26 +890,25 @@ const HealthTrackerApp = () => {
               <div className="overflow-hidden">
                 <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentWeeklyCard * 100}%)` }}>
                   {[metricsGroup1, metricsGroup2].map((group, groupIndex) => (
-                    <div key={groupIndex} className={`w-full flex-shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-4 ${groupIndex === 0 ? 'pr-2' : 'pl-2'}`}>
+                    <div key={groupIndex} className={`w-full flex-shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-3 ${groupIndex === 0 ? 'pr-2' : 'pl-2'}`}>
                       {group.map(([key, { label, unit }]) => {
                         const trend = getTrendIndicator(currentWeek[key], previousWeek[key]);
                         const TrendIcon = trend.icon;
                         return (
-                          <button key={key} onClick={() => { setSelectedWeeklyMetric(key); setShowWeeklyHistory(true); }}
-                            className={`bg-gradient-to-br ${groupIndex === 0 ? 'from-blue-50 to-indigo-50 border-blue-100' : 'from-purple-50 to-pink-50 border-purple-100'} rounded-lg p-4 border-2 text-left hover:shadow-md transition`}>
-                            <div className="text-sm text-gray-600 mb-2">{label}</div>
+                          <div key={key}
+                            className={`bg-gradient-to-br ${groupIndex === 0 ? 'from-blue-50 to-indigo-50 border-blue-100' : 'from-purple-50 to-pink-50 border-purple-100'} rounded-lg p-3 border-2`}>
+                            <div className="text-xs text-gray-600 mb-1">{label}</div>
                             <div className="flex items-baseline justify-between">
-                              <div className="text-2xl font-bold text-gray-800">{currentWeek[key]} <span className="text-sm font-normal text-gray-500">{unit}</span></div>
+                              <div className="text-xl font-bold text-gray-800">{currentWeek[key]} <span className="text-xs font-normal text-gray-500">{unit}</span></div>
                               {TrendIcon && (
                                 <div className={`flex items-center space-x-1 ${trend.color}`}>
-                                  <TrendIcon className="w-4 h-4" />
-                                  <span className="text-sm font-medium">{trend.text}</span>
+                                  <TrendIcon className="w-3 h-3" />
+                                  <span className="text-xs font-medium">{trend.text}</span>
                                 </div>
                               )}
                             </div>
-                            <div className="text-xs text-gray-500 mt-2">Last week: {previousWeek[key]} {unit}</div>
-                            <div className={`text-xs mt-1 ${groupIndex === 0 ? 'text-blue-600' : 'text-purple-600'}`}>Tap to see history →</div>
-                          </button>
+                            <div className="text-xs text-gray-500 mt-1">Last week: {previousWeek[key]} {unit}</div>
+                          </div>
                         );
                       })}
                     </div>
@@ -521,7 +916,7 @@ const HealthTrackerApp = () => {
                 </div>
               </div>
               
-              <div className="text-center mt-4 text-sm text-gray-500">Swipe or tap dots →</div>
+              <div className="text-center mt-3 text-xs text-gray-500">Swipe or tap dots →</div>
             </div>
           </div>
         )}
@@ -530,7 +925,7 @@ const HealthTrackerApp = () => {
           <div className="bg-white rounded-xl shadow-lg p-4">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-bold text-gray-800">Weekly Trends</h2>
-              <select value={selectedMetric} onChange={(e) => setSelectedMetric(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-1 text-sm">
+              <select value={selectedMetric} onChange={(e) => setSelectedMetric(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-1 text-xs">
                 {Object.entries(metrics).map(([key, { label }]) => (
                   <option key={key} value={key}>{label}</option>
                 ))}
@@ -550,42 +945,42 @@ const HealthTrackerApp = () => {
         )}
 
         {activeTab === 'notes' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-800 flex items-center space-x-2">
-                  <FileText className="w-6 h-6" />
-                  <span>Diet & Lifestyle Notes</span>
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl shadow-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-gray-800 flex items-center space-x-2">
+                  <FileText className="w-5 h-5" />
+                  <span>Notes</span>
                 </h2>
-                <button onClick={() => setShowNoteModal(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition text-sm">
+                <button onClick={() => setShowNoteModal(true)} className="bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition text-sm">
                   <Plus className="w-4 h-4" />
-                  <span>Add Note</span>
+                  <span>Add</span>
                 </button>
               </div>
               
-              <p className="text-sm text-gray-600 mb-4">Track diet changes, new exercises, supplements, or anything that might affect your progress 📝</p>
+              <p className="text-xs text-gray-600 mb-3">Track diet changes, exercises, or lifestyle adjustments 📝</p>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {notes.length === 0 ? (
                   <div className="text-center py-8 text-gray-400">
                     <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>No notes yet. Add your first note!</p>
+                    <p className="text-sm">No notes yet</p>
                   </div>
                 ) : (
                   notes.map((note) => (
-                    <div key={note.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
-                      <div className="flex justify-between items-start mb-2">
+                    <div key={note.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
+                      <div className="flex justify-between items-start mb-1">
                         <span className="text-xs text-gray-500 font-medium">{note.displayDate}</span>
                         <div className="flex space-x-2">
                           <button onClick={() => handleEditNote(note)} className="text-blue-500 hover:text-blue-700 transition" title="Edit">
-                            <Edit2 className="w-4 h-4" />
+                            <Edit2 className="w-3 h-3" />
                           </button>
                           <button onClick={() => handleDeleteNote(note.id)} className="text-red-500 hover:text-red-700 transition" title="Delete">
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3 h-3" />
                           </button>
                         </div>
                       </div>
-                      <p className="text-gray-800 whitespace-pre-wrap">{note.text}</p>
+                      <p className="text-sm text-gray-800 whitespace-pre-wrap">{note.text}</p>
                     </div>
                   ))
                 )}
@@ -594,33 +989,53 @@ const HealthTrackerApp = () => {
 
             <button
               onClick={() => setShowDisclaimer(true)}
-              className="w-full bg-gradient-to-r from-yellow-100 to-orange-100 border-2 border-yellow-300 rounded-xl p-4 hover:from-yellow-200 hover:to-orange-200 transition flex items-center justify-center space-x-2"
+              className="w-full bg-gradient-to-r from-yellow-100 to-orange-100 border-2 border-yellow-300 rounded-xl p-3 hover:from-yellow-200 hover:to-orange-200 transition flex items-center justify-center space-x-2"
             >
-              <span className="text-2xl">⚠️</span>
-              <span className="font-semibold text-yellow-800">View Calculation Disclaimer & Important Info</span>
+              <span className="text-xl">⚠️</span>
+              <span className="font-semibold text-yellow-800 text-sm">View Calculation Disclaimer</span>
             </button>
           </div>
         )}
       </div>
 
-      {showNoteModal && (
+      {showProfile && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">{editingNoteId ? 'Edit Note' : 'Add Note'}</h2>
-              <p className="text-sm text-gray-600 mb-4">Track diet changes, new exercises, or lifestyle adjustments</p>
+            <div className="p-5">
+              <h2 className="text-xl font-bold text-gray-800 mb-3">Profile Settings</h2>
               
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Note</label>
-                <textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 h-32 resize-none" placeholder="Example: Started keto diet, Added morning cardio..." autoFocus />
+              <div className="space-y-3 mb-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Height (ft)</label>
+                    <input type="number" value={userProfile.heightFeet} onChange={(e) => setUserProfile({...userProfile, heightFeet: parseInt(e.target.value) || 0})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Height (in)</label>
+                    <input type="number" value={userProfile.heightInches} onChange={(e) => setUserProfile({...userProfile, heightInches: parseInt(e.target.value) || 0})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                  <input type="number" value={userProfile.age} onChange={(e) => setUserProfile({...userProfile, age: parseInt(e.target.value) || 0})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                  <select value={userProfile.gender} onChange={(e) => setUserProfile({...userProfile, gender: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Target Weight (lbs)</label>
+                  <input type="number" value={userProfile.targetWeight} onChange={(e) => setUserProfile({...userProfile, targetWeight: parseFloat(e.target.value) || 0})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                </div>
               </div>
               
-              <div className="flex space-x-3">
-                <button onClick={handleAddNote} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition">
-                  {editingNoteId ? 'Update Note' : 'Save Note'}
-                </button>
-                <button onClick={() => { setShowNoteModal(false); setNewNote(''); setEditingNoteId(null); }} className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-medium hover:bg-gray-300 transition">Cancel</button>
-              </div>
+              <button onClick={() => setShowProfile(false)} className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition text-sm">Save</button>
             </div>
           </div>
         </div>
@@ -629,113 +1044,138 @@ const HealthTrackerApp = () => {
       {showAddData && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Add Weight Measurement</h2>
-              <p className="text-sm text-gray-600 mb-6">All other metrics will be calculated automatically</p>
+            <div className="p-5">
+              <h2 className="text-xl font-bold text-gray-800 mb-3">Add Weight Entry</h2>
               
-              <div className="space-y-4 mb-6">
+              <div className="space-y-3 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                  <input type="date" value={newEntry.date} onChange={(e) => setNewEntry({...newEntry, date: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Weight (lbs)</label>
-                  <input type="number" step="0.1" value={newEntry.weight} onChange={(e) => setNewEntry({...newEntry, weight: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-3 text-lg" placeholder="Enter weight" autoFocus />
+                  <input type="date" value={newEntry.date} onChange={(e) => setNewEntry({...newEntry, date: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
                 </div>
                 
-                {newEntry.weight && (
-                  <div className="bg-blue-50 rounded-lg p-4 mt-4">
-                    <div className="text-sm font-medium text-gray-700 mb-2">Preview:</div>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      {(() => {
-                        const preview = calculateMetrics(parseFloat(newEntry.weight));
-                        return (
-                          <>
-                            <div><span className="text-gray-600">BMI:</span> <span className="font-medium">{preview.bmi}</span></div>
-                            <div><span className="text-gray-600">Body Fat:</span> <span className="font-medium">{preview.bodyFat}%</span></div>
-                            <div><span className="text-gray-600">Muscle:</span> <span className="font-medium">{preview.muscleMass} lbs</span></div>
-                            <div><span className="text-gray-600">BMR:</span> <span className="font-medium">{preview.bmr} cal</span></div>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Weight (lbs)</label>
+                  <input type="number" step="0.1" value={newEntry.weight} onChange={(e) => setNewEntry({...newEntry, weight: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="175.5" autoFocus />
+                </div>
               </div>
               
-              <div className="flex space-x-3">
-                <button onClick={handleAddData} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition">Save</button>
-                <button onClick={() => setShowAddData(false)} className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-medium hover:bg-gray-300 transition">Cancel</button>
+              <div className="flex space-x-2">
+                <button onClick={handleAddData} className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition text-sm">Save</button>
+                <button onClick={() => { setShowAddData(false); setNewEntry({ date: new Date().toISOString().split('T')[0], weight: '' }); }} className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg font-medium hover:bg-gray-300 transition text-sm">Cancel</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {showProfile && (
+      {showExerciseModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">User Profile</h2>
-              <p className="text-sm text-gray-600 mb-6">Your profile info is used to calculate body metrics</p>
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-5">
+              <h2 className="text-xl font-bold text-gray-800 mb-3">Log Exercise</h2>
               
-              <div className="space-y-4 mb-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Feet</label>
-                    <input type="number" min="3" max="8" value={userProfile.heightFeet} onChange={(e) => setUserProfile({...userProfile, heightFeet: parseInt(e.target.value) || 0})} className="w-full border border-gray-300 rounded-lg px-4 py-2" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Inches</label>
-                    <input type="number" min="0" max="11" value={userProfile.heightInches} onChange={(e) => setUserProfile({...userProfile, heightInches: parseInt(e.target.value) || 0})} className="w-full border border-gray-300 rounded-lg px-4 py-2" />
-                  </div>
-                </div>
+              <div className="space-y-3 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
-                  <input type="number" value={userProfile.age} onChange={(e) => setUserProfile({...userProfile, age: parseInt(e.target.value)})} className="w-full border border-gray-300 rounded-lg px-4 py-2" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                  <select value={userProfile.gender} onChange={(e) => setUserProfile({...userProfile, gender: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2">
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <select value={newExercise.type} onChange={(e) => setNewExercise({...newExercise, type: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="cardio">Cardio</option>
+                    <option value="strength">Strength</option>
+                    <option value="flexibility">Flexibility</option>
+                    <option value="sports">Sports</option>
+                    <option value="other">Other</option>
                   </select>
                 </div>
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Target Weight (lbs)</label>
-                  <input type="number" value={userProfile.targetWeight} onChange={(e) => setUserProfile({...userProfile, targetWeight: parseFloat(e.target.value)})} className="w-full border border-gray-300 rounded-lg px-4 py-2" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Duration (min)</label>
+                  <input type="number" value={newExercise.duration} onChange={(e) => setNewExercise({...newExercise, duration: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="30" />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Intensity</label>
+                  <select value={newExercise.intensity} onChange={(e) => setNewExercise({...newExercise, intensity: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Calories (optional)</label>
+                  <input type="number" value={newExercise.calories} onChange={(e) => setNewExercise({...newExercise, calories: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="250" />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+                  <textarea value={newExercise.notes} onChange={(e) => setNewExercise({...newExercise, notes: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 h-16 resize-none text-sm" placeholder="5K run, leg day..." />
                 </div>
               </div>
               
-              <button onClick={() => setShowProfile(false)} className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition">Save Profile</button>
+              <div className="flex space-x-2">
+                <button onClick={handleAddExercise} className="flex-1 bg-orange-600 text-white py-2 rounded-lg font-medium hover:bg-orange-700 transition text-sm">Save</button>
+                <button onClick={() => { setShowExerciseModal(false); setNewExercise({ type: 'cardio', duration: '', intensity: 'medium', calories: '', notes: '' }); }} className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg font-medium hover:bg-gray-300 transition text-sm">Cancel</button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {showWeeklyHistory && selectedWeeklyMetric && (
+      {showMealModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold text-gray-800">{metrics[selectedWeeklyMetric].label} History</h2>
-                <button onClick={() => { setShowWeeklyHistory(false); setSelectedWeeklyMetric(null); }} className="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-5">
+              <h2 className="text-xl font-bold text-gray-800 mb-3">Log Meal</h2>
+              
+              <div className="space-y-3 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <select value={newMeal.type} onChange={(e) => setNewMeal({...newMeal, type: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="breakfast">Breakfast</option>
+                    <option value="lunch">Lunch</option>
+                    <option value="dinner">Dinner</option>
+                    <option value="snack">Snack</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Meal Name</label>
+                  <input type="text" value={newMeal.name} onChange={(e) => setNewMeal({...newMeal, name: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Grilled chicken salad" autoFocus />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Calories</label>
+                  <input type="number" value={newMeal.calories} onChange={(e) => setNewMeal({...newMeal, calories: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="500" />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+                  <textarea value={newMeal.notes} onChange={(e) => setNewMeal({...newMeal, notes: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 h-16 resize-none text-sm" placeholder="Ingredients, macros..." />
+                </div>
               </div>
               
-              <p className="text-sm text-gray-600 mb-4">Weekly averages over time</p>
+              <div className="flex space-x-2">
+                <button onClick={handleAddMeal} className="flex-1 bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700 transition text-sm">Save</button>
+                <button onClick={() => { setShowMealModal(false); setNewMeal({ type: 'breakfast', name: '', calories: '', notes: '' }); }} className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg font-medium hover:bg-gray-300 transition text-sm">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showNoteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="p-5">
+              <h2 className="text-xl font-bold text-gray-800 mb-2">{editingNoteId ? 'Edit Note' : 'Add Note'}</h2>
+              <p className="text-xs text-gray-600 mb-3">Track changes in diet, exercise, or lifestyle</p>
               
-              <div className="space-y-2">
-                {weeklyTrends.slice().reverse().map((week, index) => (
-                  <div key={index} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <div className="text-sm font-medium text-gray-700">{week.weekStart} - {week.weekEnd}</div>
-                        <div className="text-xs text-gray-500 mt-1">Week {weeklyTrends.length - index}</div>
-                      </div>
-                      <div className="text-2xl font-bold text-blue-600">{week[selectedWeeklyMetric]} <span className="text-sm font-normal text-gray-500">{metrics[selectedWeeklyMetric].unit}</span></div>
-                    </div>
-                  </div>
-                ))}
+              <textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 h-32 resize-none text-sm mb-4" placeholder="Started intermittent fasting, new workout routine, stress management..." autoFocus />
+              
+              <div className="flex space-x-2">
+                <button onClick={handleAddNote} className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition text-sm">
+                  {editingNoteId ? 'Update' : 'Save'}
+                </button>
+                <button onClick={() => { setShowNoteModal(false); setNewNote(''); setEditingNoteId(null); }} className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg font-medium hover:bg-gray-300 transition text-sm">Cancel</button>
               </div>
             </div>
           </div>
@@ -744,51 +1184,43 @@ const HealthTrackerApp = () => {
 
       {showDisclaimer && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
             <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold text-yellow-800 flex items-center space-x-2">
-                  <span className="text-3xl">⚠️</span>
-                  <span>Important Disclaimer</span>
-                </h2>
-                <button onClick={() => setShowDisclaimer(false)} className="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+              <div className="flex items-center space-x-2 mb-4">
+                <AlertCircle className="w-6 h-6 text-yellow-600" />
+                <h2 className="text-xl font-bold text-gray-800">Health Calculations Disclaimer</h2>
               </div>
               
-              <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 mb-4">
-                <div className="text-sm text-yellow-900 space-y-3">
-                  <div>
-                    <h3 className="font-bold text-base mb-1">⚠️ Body Metrics Are Estimates</h3>
-                    <p>Body fat, muscle mass, BMR, and other calculations are based on the Jackson-Pollock equations and standard formulas. These are estimates and may not be 100% accurate for everyone.</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-bold text-base mb-1">🏥 Not Medical Advice</h3>
-                    <p>This app is for informational and tracking purposes only. Always consult with a healthcare professional or registered dietitian before making significant changes to your diet or exercise routine.</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-bold text-base mb-1">👤 Individual Variations</h3>
-                    <p>Body composition varies greatly between individuals. Factors like genetics, hydration, hormones, and overall health affect actual measurements.</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-bold text-base mb-1">📊 For Best Results</h3>
-                    <p>Use these metrics as trends over time rather than exact numbers. Consistency in tracking is key! Focus on the direction of change rather than specific values.</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-bold text-base mb-1">🔬 How We Calculate</h3>
-                    <p>We use the Jackson-Pollock 3-Site formula to estimate body fat percentage based on your weight, height, age, and gender. Other metrics like muscle mass, bone mass, and BMR are derived using scientifically-established formulas.</p>
-                  </div>
+              <div className="space-y-3 text-sm text-gray-700">
+                <p className="font-semibold">⚠️ For Educational Purposes Only</p>
+                
+                <p>This app calculates health metrics including BMI, body fat percentage, muscle mass, bone mass, body water percentage, basal metabolic rate (BMR), and visceral fat levels using standardized formulas and estimations.</p>
+                
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
+                  <p className="font-semibold text-yellow-800">Important Limitations:</p>
+                  <ul className="list-disc ml-5 mt-2 space-y-1 text-yellow-900">
+                    <li>These are estimates based on population averages and may not accurately reflect your individual body composition</li>
+                    <li>Results can vary significantly based on factors like hydration, muscle density, bone density, and body structure</li>
+                    <li>Professional body composition analysis uses specialized equipment and is much more accurate</li>
+                  </ul>
                 </div>
+                
+                <p className="font-semibold">Medical Advice:</p>
+                <p>This app is NOT a substitute for professional medical advice, diagnosis, or treatment. Always consult with qualified healthcare providers regarding:</p>
+                <ul className="list-disc ml-5 mt-1 space-y-1">
+                  <li>Weight loss or fitness goals</li>
+                  <li>Nutrition and dietary changes</li>
+                  <li>Exercise programs</li>
+                  <li>Health concerns or medical conditions</li>
+                </ul>
+                
+                <p className="font-semibold">Accuracy Note:</p>
+                <p>Body fat percentage calculations use skinfold equations (Jackson-Pollock for males, Jackson-Pollock-Ward for females). These provide rough estimates but can have significant margins of error.</p>
+                
+                <p className="text-xs text-gray-600 italic mt-4">By using this app, you acknowledge that all calculations are approximations for tracking trends over time, not precise medical measurements.</p>
               </div>
               
-              <button
-                onClick={() => setShowDisclaimer(false)}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition"
-              >
-                I Understand
-              </button>
+              <button onClick={() => setShowDisclaimer(false)} className="w-full mt-4 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition">I Understand</button>
             </div>
           </div>
         </div>
