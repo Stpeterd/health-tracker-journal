@@ -554,7 +554,7 @@ const HealthTrackerApp = () => {
                 </div>
               </div>
               
-              <div className="text-center mt-3 text-xs text-gray-500">Swipe or tap dots →</div>
+              <div className="text-center mt-3 text-xs text-gray-500">Tap dots to switch →</div>
             </div>
 
             {healthData.length > 0 && (
@@ -829,7 +829,7 @@ const HealthTrackerApp = () => {
                 </div>
               </div>
               
-              <div className="text-center mt-3 text-xs text-gray-500">Swipe or tap dots →</div>
+              <div className="text-center mt-3 text-xs text-gray-500">Tap dots to switch →</div>
             </div>
           </div>
         )}
