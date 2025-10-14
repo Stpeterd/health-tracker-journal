@@ -17,6 +17,7 @@ const HealthTrackerApp = () => {
   const [showExerciseModal, setShowExerciseModal] = useState(false);
   const [showMealModal, setShowMealModal] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showStepsModal, setShowStepsModal] = useState(false);
   
   const [userProfile, setUserProfile] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -83,6 +84,19 @@ const HealthTrackerApp = () => {
     return [];
   });
 
+  const [steps, setSteps] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('healthTrackerSteps');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+
+  const [newSteps, setNewSteps] = useState({
+    count: '',
+    notes: ''
+  });
+
   const [newExercise, setNewExercise] = useState({
     type: 'cardio',
     duration: '',
@@ -133,6 +147,12 @@ const HealthTrackerApp = () => {
       localStorage.setItem('healthTrackerMeals', JSON.stringify(meals));
     }
   }, [meals]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('healthTrackerSteps', JSON.stringify(steps));
+    }
+  }, [steps]);
 
   const metrics = {
     weight: { label: 'Weight', unit: 'lbs', icon: Scale, group: 1 },
@@ -314,6 +334,23 @@ const HealthTrackerApp = () => {
     return getTodayMeals().reduce((sum, meal) => sum + (parseInt(meal.calories) || 0), 0);
   };
 
+  const getTodaySteps = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const todaySteps = steps.filter(s => s.date === today);
+    return todaySteps.reduce((sum, s) => sum + parseInt(s.count), 0);
+  };
+
+  const calculateStepsCalories = (stepCount) => {
+    // Formula: steps × 0.04 × (weight ÷ 150)
+    // Assumes ~80 calories per 2000 steps for a 150lb person
+    const latestWeight = healthData[healthData.length - 1]?.weight || userProfile.targetWeight || 150;
+    return Math.round(stepCount * 0.04 * (latestWeight / 150));
+  };
+
+  const getTodayStepsCalories = () => {
+    return calculateStepsCalories(getTodaySteps());
+  };
+
   const handleAddNote = () => {
     if (!newNote.trim()) {
       alert('Please enter a note');
@@ -407,6 +444,32 @@ const HealthTrackerApp = () => {
     }
   };
 
+  const handleAddSteps = () => {
+    if (!newSteps.count || parseInt(newSteps.count) <= 0) {
+      alert('Please enter a valid step count');
+      return;
+    }
+
+    const stepEntry = {
+      id: Date.now(),
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      count: parseInt(newSteps.count),
+      calories: calculateStepsCalories(parseInt(newSteps.count)),
+      notes: newSteps.notes
+    };
+
+    setSteps([stepEntry, ...steps]);
+    setNewSteps({ count: '', notes: '' });
+    setShowStepsModal(false);
+  };
+
+  const handleDeleteSteps = (id) => {
+    if (window.confirm('Delete this step entry?')) {
+      setSteps(steps.filter(s => s.id !== id));
+    }
+  };
+
   const handleAddData = () => {
     const weight = parseFloat(newEntry.weight);
     if (!weight || weight <= 0) {
@@ -439,6 +502,7 @@ const HealthTrackerApp = () => {
       waterIntake: waterIntake,
       exercises: exercises,
       meals: meals,
+      steps: steps,
       exportDate: new Date().toISOString()
     };
     
@@ -467,6 +531,7 @@ const HealthTrackerApp = () => {
         if (imported.waterIntake) setWaterIntake(imported.waterIntake);
         if (imported.exercises) setExercises(imported.exercises);
         if (imported.meals) setMeals(imported.meals);
+        if (imported.steps) setSteps(imported.steps);
         alert('Data imported successfully!');
       } catch (error) {
         alert('Error importing data');
@@ -508,7 +573,7 @@ const HealthTrackerApp = () => {
       <div className="bg-white shadow-md">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex space-x-6 overflow-x-auto">
-            {['dashboard', 'activity', 'nutrition', 'weekly', 'notes'].map(tab => (
+            {['dashboard', 'steps', 'activity', 'nutrition', 'weekly', 'notes'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -640,6 +705,72 @@ const HealthTrackerApp = () => {
                   )}
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'steps' && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl shadow-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-gray-800 flex items-center space-x-2">
+                  <Activity className="w-5 h-5 text-blue-500" />
+                  <span>Steps Tracker</span>
+                </h2>
+                <button onClick={() => setShowStepsModal(true)} className="bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition text-sm">
+                  <Plus className="w-4 h-4" />
+                  <span>Add</span>
+                </button>
+              </div>
+              
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 mb-3">
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div>
+                    <div className="text-xs text-gray-600">Today's Steps</div>
+                    <div className="text-3xl font-bold text-blue-600">{getTodaySteps().toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-600">Calories Burned</div>
+                    <div className="text-3xl font-bold text-green-600">{getTodayStepsCalories()}</div>
+                  </div>
+                </div>
+                <div className="mt-3 text-center text-xs text-gray-600">
+                  🎯 Goal: 10,000 steps • {((getTodaySteps() / 10000) * 100).toFixed(0)}% complete
+                </div>
+                <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min((getTodaySteps() / 10000) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                {steps.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No steps logged yet</p>
+                  </div>
+                ) : (
+                  steps.map((step) => (
+                    <div key={step.id} className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-3 border border-blue-100">
+                      <div className="flex justify-between items-start mb-1">
+                        <div>
+                          <span className="text-xs text-gray-500 font-medium">{step.date} • {step.time}</span>
+                          <div className="font-bold text-gray-800 text-sm mt-1">👟 {step.count.toLocaleString()} steps</div>
+                        </div>
+                        <button onClick={() => handleDeleteSteps(step.id)} className="text-red-500 hover:text-red-700 transition">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="flex gap-3 text-xs">
+                        <div><span className="text-gray-600">Calories:</span> <span className="font-medium text-green-600">~{step.calories}</span></div>
+                      </div>
+                      {step.notes && <p className="text-xs text-gray-700 mt-1">{step.notes}</p>}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -1195,6 +1326,50 @@ const HealthTrackerApp = () => {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showStepsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="p-5">
+              <h2 className="text-xl font-bold text-gray-800 mb-3">Log Steps</h2>
+              
+              <div className="space-y-3 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Step Count</label>
+                  <input 
+                    type="number" 
+                    value={newSteps.count} 
+                    onChange={(e) => setNewSteps({...newSteps, count: e.target.value})} 
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" 
+                    placeholder="10000" 
+                    autoFocus 
+                  />
+                  {newSteps.count && (
+                    <div className="mt-1 text-xs text-green-600">
+                      ≈ {calculateStepsCalories(parseInt(newSteps.count) || 0)} calories burned
+                    </div>
+                  )}
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+                  <textarea 
+                    value={newSteps.notes} 
+                    onChange={(e) => setNewSteps({...newSteps, notes: e.target.value})} 
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 h-16 resize-none text-sm" 
+                    placeholder="Morning walk, hiking trip..." 
+                  />
+                </div>
+              </div>
+              
+              <div className="flex space-x-2">
+                <button onClick={handleAddSteps} className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition text-sm">Save</button>
+                <button onClick={() => { setShowStepsModal(false); setNewSteps({ count: '', notes: '' }); }} className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg font-medium hover:bg-gray-300 transition text-sm">Cancel</button>
+              </div>
             </div>
           </div>
         </div>
