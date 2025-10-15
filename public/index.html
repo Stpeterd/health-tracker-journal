@@ -3,11 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Health Tracker Pro</title>
+    <title>Health Tracker Journal</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#2563eb">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-152.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Health Journal">
+    
     <script type="module" crossorigin src="/assets/index-CRDqqAan.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-mJZY5MUM.css">
   </head>
   <body>
     <div id="root"></div>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => console.log('ServiceWorker registered'))
+            .catch(error => console.log('ServiceWorker registration failed:', error));
+        });
+      }
+    </script>
   </body>
 </html>
