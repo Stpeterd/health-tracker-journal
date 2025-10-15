@@ -18,6 +18,7 @@ const HealthTrackerApp = () => {
   const [showMealModal, setShowMealModal] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showStepsModal, setShowStepsModal] = useState(false);
+  const [editingStepsId, setEditingStepsId] = useState(null);
   
   const [userProfile, setUserProfile] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -93,6 +94,7 @@ const HealthTrackerApp = () => {
   });
 
   const [newSteps, setNewSteps] = useState({
+    date: new Date().toISOString().split('T')[0],
     count: '',
     notes: ''
   });
@@ -450,18 +452,45 @@ const HealthTrackerApp = () => {
       return;
     }
 
-    const stepEntry = {
-      id: Date.now(),
-      date: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      count: parseInt(newSteps.count),
-      calories: calculateStepsCalories(parseInt(newSteps.count)),
-      notes: newSteps.notes
-    };
+    if (editingStepsId) {
+      // Edit existing entry
+      setSteps(steps.map(s => 
+        s.id === editingStepsId
+          ? {
+              ...s,
+              date: newSteps.date,
+              count: parseInt(newSteps.count),
+              calories: calculateStepsCalories(parseInt(newSteps.count)),
+              notes: newSteps.notes
+            }
+          : s
+      ));
+      setEditingStepsId(null);
+    } else {
+      // Add new entry
+      const stepEntry = {
+        id: Date.now(),
+        date: newSteps.date,
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        count: parseInt(newSteps.count),
+        calories: calculateStepsCalories(parseInt(newSteps.count)),
+        notes: newSteps.notes
+      };
+      setSteps([stepEntry, ...steps]);
+    }
 
-    setSteps([stepEntry, ...steps]);
-    setNewSteps({ count: '', notes: '' });
+    setNewSteps({ date: new Date().toISOString().split('T')[0], count: '', notes: '' });
     setShowStepsModal(false);
+  };
+
+  const handleEditSteps = (step) => {
+    setNewSteps({
+      date: step.date,
+      count: step.count.toString(),
+      notes: step.notes || ''
+    });
+    setEditingStepsId(step.id);
+    setShowStepsModal(true);
   };
 
   const handleDeleteSteps = (id) => {
@@ -759,9 +788,14 @@ const HealthTrackerApp = () => {
                           <span className="text-xs text-gray-500 font-medium">{step.date} • {step.time}</span>
                           <div className="font-bold text-gray-800 text-sm mt-1">👟 {step.count.toLocaleString()} steps</div>
                         </div>
-                        <button onClick={() => handleDeleteSteps(step.id)} className="text-red-500 hover:text-red-700 transition">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex space-x-2">
+                          <button onClick={() => handleEditSteps(step)} className="text-blue-500 hover:text-blue-700 transition" title="Edit">
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleDeleteSteps(step.id)} className="text-red-500 hover:text-red-700 transition" title="Delete">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                       <div className="flex gap-3 text-xs">
                         <div><span className="text-gray-600">Calories:</span> <span className="font-medium text-green-600">~{step.calories}</span></div>
@@ -1238,6 +1272,9 @@ const HealthTrackerApp = () => {
                 <p className="font-semibold">Accuracy Note:</p>
                 <p>Body fat percentage calculations use skinfold equations (Jackson-Pollock for males, Jackson-Pollock-Ward for females). These provide rough estimates but can have significant margins of error.</p>
                 
+                <p className="font-semibold">Steps Calorie Calculation:</p>
+                <p>Calories burned from steps are estimated using the formula: steps × 0.04 × (weight ÷ 150). This assumes approximately 80-100 calories per 2,000 steps for a 150lb person, adjusted for your current weight. Actual calories burned vary based on walking speed, terrain, fitness level, and individual metabolism.</p>
+                
                 <p className="text-xs text-gray-600 italic mt-4">By using this app, you acknowledge that all calculations are approximations for tracking trends over time, not precise medical measurements.</p>
               </div>
               
@@ -1335,9 +1372,19 @@ const HealthTrackerApp = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
             <div className="p-5">
-              <h2 className="text-xl font-bold text-gray-800 mb-3">Log Steps</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-3">{editingStepsId ? 'Edit Steps' : 'Log Steps'}</h2>
               
               <div className="space-y-3 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <input 
+                    type="date" 
+                    value={newSteps.date} 
+                    onChange={(e) => setNewSteps({...newSteps, date: e.target.value})} 
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" 
+                  />
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Step Count</label>
                   <input 
@@ -1367,8 +1414,10 @@ const HealthTrackerApp = () => {
               </div>
               
               <div className="flex space-x-2">
-                <button onClick={handleAddSteps} className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition text-sm">Save</button>
-                <button onClick={() => { setShowStepsModal(false); setNewSteps({ count: '', notes: '' }); }} className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg font-medium hover:bg-gray-300 transition text-sm">Cancel</button>
+                <button onClick={handleAddSteps} className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition text-sm">
+                  {editingStepsId ? 'Update' : 'Save'}
+                </button>
+                <button onClick={() => { setShowStepsModal(false); setNewSteps({ date: new Date().toISOString().split('T')[0], count: '', notes: '' }); setEditingStepsId(null); }} className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg font-medium hover:bg-gray-300 transition text-sm">Cancel</button>
               </div>
             </div>
           </div>
