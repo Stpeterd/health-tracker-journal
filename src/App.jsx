@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Scale, TrendingUp, TrendingDown, Calendar, Plus, Users, Activity, Download, Upload, FileText, Trash2, Edit2, AlertCircle, Droplets, Dumbbell, Utensils } from 'lucide-react';
+import { Scale, TrendingUp, TrendingDown, Calendar, Plus, Users, Activity, Download, Upload, FileText, Trash2, Edit2, AlertCircle, Droplets, Dumbbell, Utensils, Bluetooth, Wifi, Check, Sparkles } from 'lucide-react';
 
 const HealthTrackerApp = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -19,6 +19,17 @@ const HealthTrackerApp = () => {
   const [showProfile, setShowProfile] = useState(false);
   const [showStepsModal, setShowStepsModal] = useState(false);
   const [editingStepsId, setEditingStepsId] = useState(null);
+
+  // Bluetooth and Fitbit states
+  const [bluetoothSupported, setBluetoothSupported] = useState(true);
+  const [bluetoothDevice, setBluetoothDevice] = useState(null);
+  const [isBluetoothConnected, setIsBluetoothConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [bluetoothError, setBluetoothError] = useState('');
+  const [fitbitConnected, setFitbitConnected] = useState(false);
+  const [fitbitLoading, setFitbitLoading] = useState(false);
+  const [fitbitError, setFitbitError] = useState('');
+  
   
   const [userProfile, setUserProfile] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -156,7 +167,121 @@ const HealthTrackerApp = () => {
     }
   }, [steps]);
 
-  const metrics = {
+  
+  // Check Bluetooth support on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
+      setBluetoothSupported('bluetooth' in navigator);
+    }
+  }, []);
+
+
+  // Bluetooth Scale Functions
+  const connectBluetoothScale = async () => {
+    if (!bluetoothSupported) {
+      setBluetoothError('Bluetooth not supported in this browser. Please use Chrome or Edge.');
+      return;
+    }
+
+    setIsConnecting(true);
+    setBluetoothError('');
+
+    try {
+      const device = await navigator.bluetooth.requestDevice({
+        filters: [
+          { services: ['body_composition'] },
+          { services: ['weight_scale'] },
+          { namePrefix: 'Scale' },
+          { namePrefix: 'Weight' }
+        ],
+        optionalServices: ['battery_service', 'device_information']
+      });
+
+      const server = await device.gatt.connect();
+      setBluetoothDevice(device);
+      setIsBluetoothConnected(true);
+
+      device.addEventListener('gattserverdisconnected', () => {
+        setIsBluetoothConnected(false);
+        setBluetoothDevice(null);
+      });
+
+      const service = await server.getPrimaryService('body_composition');
+      const characteristic = await service.getCharacteristic('weight_measurement');
+
+      await characteristic.startNotifications();
+      characteristic.addEventListener('characteristicvaluechanged', (event) => {
+        const value = event.target.value;
+        const weight = value.getFloat32(1, true);
+        
+        // Auto-add weight entry
+        const today = new Date().toISOString().split('T')[0];
+        const newData = {
+          date: today,
+          weight: weight.toFixed(1)
+        };
+        
+        setHealthData(prev => {
+          const existingIndex = prev.findIndex(entry => entry.date === today);
+          if (existingIndex >= 0) {
+            const updated = [...prev];
+            updated[existingIndex] = { ...updated[existingIndex], weight: weight.toFixed(1) };
+            return updated;
+          }
+          return [...prev, newData].sort((a, b) => new Date(a.date) - new Date(b.date));
+        });
+        
+        alert(`Weight automatically recorded: ${weight.toFixed(1)} lbs`);
+      });
+
+    } catch (error) {
+      console.error('Bluetooth error:', error);
+      setBluetoothError(error.message || 'Failed to connect to scale');
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const disconnectBluetoothScale = () => {
+    if (bluetoothDevice && bluetoothDevice.gatt.connected) {
+      bluetoothDevice.gatt.disconnect();
+    }
+    setBluetoothDevice(null);
+    setIsBluetoothConnected(false);
+  };
+
+  // Fitbit Connection Functions
+  const connectFitbit = async () => {
+    setFitbitLoading(true);
+    setFitbitError('');
+
+    try {
+      // In production, this would use Fitbit's OAuth 2.0 flow
+      // For now, simulate the connection
+      alert('Fitbit Integration Info:\n\n' +
+            'To connect Fitbit in production:\n' +
+            '1. Register app at dev.fitbit.com\n' +
+            '2. Implement OAuth 2.0 flow\n' +
+            '3. Request activity & sleep permissions\n' +
+            '4. Fetch step data from Fitbit API\n\n' +
+            'For now, manually add steps using the + button!');
+      
+      setFitbitConnected(true);
+      
+    } catch (error) {
+      setFitbitError('Failed to connect to Fitbit. Please try again.');
+      console.error('Fitbit connection error:', error);
+    } finally {
+      setFitbitLoading(false);
+    }
+  };
+
+  const disconnectFitbit = () => {
+    setFitbitConnected(false);
+    alert('Fitbit disconnected successfully');
+  };
+
+const metrics = {
     weight: { label: 'Weight', unit: 'lbs', icon: Scale, group: 1 },
     bmi: { label: 'BMI', unit: '', icon: Activity, group: 1 },
     bodyFat: { label: 'Body Fat', unit: '%', icon: TrendingDown, group: 1 },
