@@ -754,7 +754,98 @@ const metrics = {
                   ))}
                 </div>
               </div>
+              {/* Bluetooth & Fitbit Integration */}
+          <div className="bg-white rounded-xl shadow-lg p-4">
+            <h3 className="font-bold text-gray-800 flex items-center space-x-2 text-sm mb-4">
+              <Wifi className="w-5 h-5 text-blue-600" />
+              <span>Connected Devices</span>
+            </h3>
+            
+            <div className="space-y-3">
+              {/* Bluetooth Scale */}
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Bluetooth className={`w-5 h-5 ${isBluetoothConnected ? 'text-blue-600' : 'text-gray-400'}`} />
+                  <div>
+                    <p className="font-medium text-sm">Bluetooth Scale</p>
+                    <p className="text-xs text-gray-600">
+                      {isBluetoothConnected ? 'Connected' : 'Auto-sync weight'}
+                    </p>
+                  </div>
+                </div>
+                {!bluetoothSupported ? (
+                  <span className="text-xs text-red-600">Not supported</span>
+                ) : isBluetoothConnected ? (
+                  <button
+                    onClick={disconnectBluetoothScale}
+                    className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs hover:bg-red-200 transition"
+                  >
+                    Disconnect
+                  </button>
+                ) : (
+                  <button
+                    onClick={connectBluetoothScale}
+                    disabled={isConnecting}
+                    className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 transition disabled:opacity-50"
+                  >
+                    {isConnecting ? 'Connecting...' : 'Connect'}
+                  </button>
+                )}
+              </div>
               
+              {bluetoothError && (
+                <div className="flex items-start gap-2 p-3 bg-red-50 rounded-lg">
+                  <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-600">{bluetoothError}</p>
+                </div>
+              )}
+
+              {/* Fitbit */}
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Activity className={`w-5 h-5 ${fitbitConnected ? 'text-green-600' : 'text-gray-400'}`} />
+                  <div>
+                    <p className="font-medium text-sm">Fitbit</p>
+                    <p className="text-xs text-gray-600">
+                      {fitbitConnected ? 'Connected - Ready to sync' : 'Sync steps automatically'}
+                    </p>
+                  </div>
+                </div>
+                {fitbitConnected ? (
+                  <button
+                    onClick={disconnectFitbit}
+                    className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs hover:bg-red-200 transition"
+                  >
+                    Disconnect
+                  </button>
+                ) : (
+                  <button
+                    onClick={connectFitbit}
+                    disabled={fitbitLoading}
+                    className="px-3 py-1 bg-green-600 text-white rounded-lg text-xs hover:bg-green-700 transition disabled:opacity-50"
+                  >
+                    {fitbitLoading ? 'Connecting...' : 'Connect'}
+                  </button>
+                )}
+              </div>
+              
+              {fitbitError && (
+                <div className="flex items-start gap-2 p-3 bg-red-50 rounded-lg">
+                  <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-600">{fitbitError}</p>
+                </div>
+              )}
+              
+              {fitbitConnected && (
+                <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <p className="text-xs text-green-700">
+                    Fitbit connected! Use the Steps tab to log your activity.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
               <div className="overflow-hidden">
                 <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentDashboardCard * 100}%)` }}>
                   {[metricsGroup1, metricsGroup2].map((group, groupIndex) => (
