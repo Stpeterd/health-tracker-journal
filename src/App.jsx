@@ -191,23 +191,141 @@ const connectBluetoothScale = async () => {
       filters: [
         { services: ['body_composition'] },
         { services: ['weight_scale'] },
-        { services: ['0000181d-0000-1000-8000-00805f9b34fb'] },
-        { services: ['0000181b-0000-1000-8000-00805f9b34fb'] },
         { namePrefix: 'RENPHO' },
         { namePrefix: 'Renpho' },
-        { namePrefix: 'ES-CS20M' },
-        { namePrefix: 'CS20M' },
         { namePrefix: 'Scale' },
-        { namePrefix: 'Weight' },
-        { namePrefix: 'Body' },
       ],
-      optionalServices: [
-        'battery_service',
-        'device_information',
-        '0000fff0-0000-1000-8000-00805f9b34fb',
-        '0000ffe0-0000-1000-8000-00805f9b34fb',
-      ]
+      optionalServices: ['battery_service', 'device_information']
     });
+
+    console.log('Device found:', device.name);
+
+    const server = await device.gatt.connect();
+    setBluetoothDevice(device);
+    setIsBluetoothConnected(true);
+
+    device.addEventListener('gattserverdisconnected', () => {
+      setIsBluetoothConnected(false);
+      setBluetoothDevice(null);
+    });
+
+    const services = await server.getPrimaryServices();
+    console.log('Available services:', services.length);
+
+    let weightFound = false;
+
+    try {
+      const service = await server.getPrimaryService('body_composition');
+      const characteristic = await service.getCharacteristic('weight_measurement');
+      
+      await characteristic.startNotifications();
+      characteristic.addEventListener('characteristicvaluechanged', (event) => {
+        const value = event.target.value;
+        const weight = value.getFloat32(1, true);
+        
+        if (weight >= 20 && weight <= 500) {
+          const today = new Date().toISOString().split('T')[0];
+          
+          setHealthData((prev) => {
+            const existingIndex = prev.findIndex((entry) => entry.date === today);
+            if (existingIndex >= 0) {
+              const updated = [...prev];
+              updated[existingIndex] = { ...updated[existingIndex], weight: weight.toFixed(1) };
+              return updated;
+            }
+            return [...prev, { date: today, weight: weight.toFixed(1) }].sort((a, b) => new Date(a.date) - new Date(b.date));
+          });
+          
+          alert('Weight recorded: ' + weight.toFixed(1) + ' lbs');
+        }
+      });
+      
+      weightFound = true;
+      console.log('Connected to standard weight service');
+    } catch (e) {
+      console.log('Standard service not found');
+    }
+
+    if (!weightFound) {
+      for (const service of services) {
+        try {
+          const characteristics = await service.getCharacteristics();
+          
+          for (const characteristic of characteristics) {
+            if (characteristic.properties.notify) {
+              try {
+                await characteristic.startNotifications();
+                characteristic.addEventListener('characteristicvaluechanged', (event) => {
+                  console.log('Data received');
+                  const value = event.target.value;
+                  
+                  try {
+                    let weight = null;
+                    
+                    if (value.byteLength >= 4) {
+                      weight = value.getFloat32(1, true);
+                      
+                      if (weight < 20 || weight > 500) {
+                        weight = value.getFloat32(1, false);
+                      }
+                      
+                      if (weight < 20 || weight > 500) {
+                        const grams = value.getUint16(1, true);
+                        weight = grams / 453.592;
+                      }
+                    }
+                    
+                    if (weight && weight >= 20 && weight <= 500) {
+                      const today = new Date().toISOString().split('T')[0];
+                      
+                      setHealthData((prev) => {
+                        const existingIndex = prev.findIndex((entry) => entry.date === today);
+                        if (existingIndex >= 0) {
+                          const updated = [...prev];
+                          updated[existingIndex] = { ...updated[existingIndex], weight: weight.toFixed(1) };
+                          return updated;
+                        }
+                        return [...prev, { date: today, weight: weight.toFixed(1) }].sort((a, b) => new Date(a.date) - new Date(b.date));
+                      });
+                      
+                      alert('Weight recorded: ' + weight.toFixed(1) + ' lbs');
+                    }
+                  } catch (parseError) {
+                    console.log('Parse error');
+                  }
+                });
+                
+                weightFound = true;
+              } catch (notifyError) {
+                // Continue
+              }
+            }
+          }
+        } catch (serviceError) {
+          console.log('Service error');
+        }
+      }
+    }
+
+    if (weightFound) {
+      alert('Connected! Step on your scale to record weight.');
+    } else {
+      setBluetoothError('Connected but could not find weight data.');
+    }
+
+  } catch (error) {
+    console.error('Bluetooth error:', error);
+    if (error.name === 'NotFoundError') {
+      setBluetoothError('No scale found. Make sure your scale is on and nearby.');
+    } else if (error.name === 'SecurityError') {
+      setBluetoothError('Bluetooth access denied. Check browser permissions.');
+    } else {
+      setBluetoothError('Failed to connect to scale.');
+    }
+  } finally {
+    setIsConnecting(false);
+  }
+};
 
     console.log('Device found:', device.name);
 
