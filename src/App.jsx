@@ -177,38 +177,174 @@ const HealthTrackerApp = () => {
 
 
   // Bluetooth Scale Functions
-  // Helper function to handle weight changes
-const handleWeightChange = (event) => {
+const connectBluetoothScale = async () => {
+  if (!bluetoothSupported) {
+    setBluetoothError('Bluetooth not supported in this browser. Please use Chrome or Edge.');
+    return;
+  }
+
+  setIsConnecting(true);
+  setBluetoothError('');
+
   try {
-    const value = event.target.value;
-    const weight = typeof value.getFloat32 === 'function' 
-      ? value.getFloat32(1, true) 
-      : parseFloat(value);
-    
-    // Sanity check
-    if (weight >= 20 && weight <= 500) {
-      const today = new Date().toISOString().split('T')[0];
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [
+        { services: ['body_composition'] },
+        { services: ['weight_scale'] },
+        { services: ['0000181d-0000-1000-8000-00805f9b34fb'] },
+        { services: ['0000181b-0000-1000-8000-00805f9b34fb'] },
+        { namePrefix: 'RENPHO' },
+        { namePrefix: 'Renpho' },
+        { namePrefix: 'ES-CS20M' },
+        { namePrefix: 'CS20M' },
+        { namePrefix: 'Scale' },
+        { namePrefix: 'Weight' },
+        { namePrefix: 'Body' },
+      ],
+      optionalServices: [
+        'battery_service',
+        'device_information',
+        '0000fff0-0000-1000-8000-00805f9b34fb',
+        '0000ffe0-0000-1000-8000-00805f9b34fb',
+      ]
+    });
+
+    console.log('Device found:', device.name);
+
+    const server = await device.gatt.connect();
+    setBluetoothDevice(device);
+    setIsBluetoothConnected(true);
+
+    device.addEventListener('gattserverdisconnected', () => {
+      setIsBluetoothConnected(false);
+      setBluetoothDevice(null);
+    });
+
+    const services = await server.getPrimaryServices();
+    console.log('Available services:', services.length);
+
+    let weightFound = false;
+
+    // Try standard weight scale service first
+    try {
+      const service = await server.getPrimaryService('body_composition');
+      const characteristic = await service.getCharacteristic('weight_measurement');
       
-      // Add to health data
-      setHealthData(prev => {
-        const existingIndex = prev.findIndex(entry => entry.date === today);
-        if (existingIndex >= 0) {
-          const updated = [...prev];
-          updated[existingIndex] = { ...updated[existingIndex], weight: weight.toFixed(1) };
-          return updated;
+      await characteristic.startNotifications();
+      characteristic.addEventListener('characteristicvaluechanged', (event) => {
+        const value = event.target.value;
+        const weight = value.getFloat32(1, true);
+        
+        if (weight >= 20 && weight <= 500) {
+          const today = new Date().toISOString().split('T')[0];
+          
+          setHealthData(prev => {
+            const existingIndex = prev.findIndex(entry => entry.date === today);
+            if (existingIndex >= 0) {
+              const updated = [...prev];
+              updated[existingIndex] = { ...updated[existingIndex], weight: weight.toFixed(1) };
+              return updated;
+            }
+            return [...prev, { date: today, weight: weight.toFixed(1) }].sort((a, b) => 
+              new Date(a.date) - new Date(b.date)
+            );
+          });
+          
+          alert(`Weight recorded: ${weight.toFixed(1)} lbs`);
         }
-        return [...prev, { date: today, weight: weight.toFixed(1) }].sort((a, b) => 
-          new Date(a.date) - new Date(b.date)
-        );
       });
       
-      alert(`✅ Weight recorded: ${weight.toFixed(1)} lbs`);
+      weightFound = true;
+      console.log('Connected to standard weight service');
+    } catch (e) {
+      console.log('Standard service not found, trying other services...');
     }
+
+    // If standard didn't work, try to read from any available characteristics
+    if (!weightFound) {
+      for (const service of services) {
+        try {
+          const characteristics = await service.getCharacteristics();
+          console.log(`Service ${service.uuid} has ${characteristics.length} characteristics`);
+          
+          for (const characteristic of characteristics) {
+            if (characteristic.properties.notify) {
+              try {
+                await characteristic.startNotifications();
+                characteristic.addEventListener('characteristicvaluechanged', (event) => {
+                  console.log('Data received from characteristic:', characteristic.uuid);
+                  const value = event.target.value;
+                  
+                  try {
+                    let weight = null;
+                    
+                    if (value.byteLength >= 4) {
+                      weight = value.getFloat32(1, true);
+                      
+                      if (weight < 20 || weight > 500) {
+                        weight = value.getFloat32(1, false);
+                      }
+                      
+                      if (weight < 20 || weight > 500) {
+                        const grams = value.getUint16(1, true);
+                        weight = grams / 453.592;
+                      }
+                    }
+                    
+                    if (weight && weight >= 20 && weight <= 500) {
+                      const today = new Date().toISOString().split('T')[0];
+                      
+                      setHealthData(prev => {
+                        const existingIndex = prev.findIndex(entry => entry.date === today);
+                        if (existingIndex >= 0) {
+                          const updated = [...prev];
+                          updated[existingIndex] = { ...updated[existingIndex], weight: weight.toFixed(1) };
+                          return updated;
+                        }
+                        return [...prev, { date: today, weight: weight.toFixed(1) }].sort((a, b) => 
+                          new Date(a.date) - new Date(b.date)
+                        );
+                      });
+                      
+                      alert(`Weight recorded: ${weight.toFixed(1)} lbs`);
+                    }
+                  } catch (parseError) {
+                    console.log('Could not parse weight data:', parseError);
+                  }
+                });
+                
+                console.log('Subscribed to characteristic:', characteristic.uuid);
+                weightFound = true;
+              } catch (notifyError) {
+                // Continue to next characteristic
+              }
+            }
+          }
+        } catch (serviceError) {
+          console.log('Error reading service:', serviceError);
+        }
+      }
+    }
+
+    if (weightFound) {
+      alert('Connected! Step on your scale to record weight.');
+    } else {
+      setBluetoothError('Connected to device, but could not find weight data. Your scale may require the official Renpho app.');
+    }
+
   } catch (error) {
-    console.error('Error processing weight:', error);
+    console.error('Bluetooth error:', error);
+    if (error.name === 'NotFoundError') {
+      setBluetoothError('No scale found. Make sure your scale is on and nearby.');
+    } else if (error.name === 'SecurityError') {
+      setBluetoothError('Bluetooth access denied. Check browser permissions.');
+    } else {
+      setBluetoothError(error.message || 'Failed to connect. Renpho scales work best with the official app.');
+    }
+  } finally {
+    setIsConnecting(false);
   }
 };
-
 const connectBluetoothScale = async () => {
   if (!bluetoothSupported) {
     setBluetoothError('Bluetooth not supported in this browser. Please use Chrome or Edge.');
