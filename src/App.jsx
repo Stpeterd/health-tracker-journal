@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Scale, TrendingUp, TrendingDown, Calendar, Plus, Users, Activity, Download, Upload, FileText, Trash2, Edit2, AlertCircle, Droplets, Dumbbell, Utensils, Wifi, Check, Sparkles } from 'lucide-react';
+import { Scale, TrendingUp, TrendingDown, Calendar, Plus, Users, Activity, Download, Upload, FileText, Trash2, Edit2, AlertCircle, Droplets, Dumbbell, Utensils, Check, Sparkles } from 'lucide-react';
 
 const HealthTrackerApp = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -20,12 +20,10 @@ const HealthTrackerApp = () => {
   const [showStepsModal, setShowStepsModal] = useState(false);
   const [editingStepsId, setEditingStepsId] = useState(null);
 
-  // Bluetooth and Fitbit states
-  
+  // Fitbit states
   const [fitbitConnected, setFitbitConnected] = useState(false);
   const [fitbitLoading, setFitbitLoading] = useState(false);
   const [fitbitError, setFitbitError] = useState('');
-  
   
   const [userProfile, setUserProfile] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -120,283 +118,6 @@ const HealthTrackerApp = () => {
     calories: '',
     notes: ''
   });
-
- 
-  alert('Renpho Scale Info:\n\n' +
-        'Your Renpho ES-CS20M uses a proprietary Bluetooth protocol that only works with the official Renpho app.\n\n' +
-        'To track your weight:\n' +
-        '1. Weigh yourself with your Renpho scale\n' +
-        '2. Use the "Add Weight" button above to log it\n' +
-        '3. Takes just 3 seconds!\n\n' +
-        'For automatic syncing, you would need a generic Bluetooth scale ($25 on Amazon).');
-};
-    const services = await server.getPrimaryServices();
-    console.log('Available services:', services.length);
-
-    let weightFound = false;
-
-    try {
-      const service = await server.getPrimaryService('body_composition');
-      const characteristic = await service.getCharacteristic('weight_measurement');
-      
-      await characteristic.startNotifications();
-      characteristic.addEventListener('characteristicvaluechanged', (event) => {
-        const value = event.target.value;
-        const weight = value.getFloat32(1, true);
-        
-        if (weight >= 20 && weight <= 500) {
-          const today = new Date().toISOString().split('T')[0];
-          
-          setHealthData((prev) => {
-            const existingIndex = prev.findIndex((entry) => entry.date === today);
-            if (existingIndex >= 0) {
-              const updated = [...prev];
-              updated[existingIndex] = { ...updated[existingIndex], weight: weight.toFixed(1) };
-              return updated;
-            }
-            return [...prev, { date: today, weight: weight.toFixed(1) }].sort((a, b) => new Date(a.date) - new Date(b.date));
-          });
-          
-          alert('Weight recorded: ' + weight.toFixed(1) + ' lbs');
-        }
-      });
-      
-      weightFound = true;
-      console.log('Connected to standard weight service');
-    } catch (e) {
-      console.log('Standard service not found');
-    }
-
-    if (!weightFound) {
-      for (const service of services) {
-        try {
-          const characteristics = await service.getCharacteristics();
-          
-          for (const characteristic of characteristics) {
-            if (characteristic.properties.notify) {
-              try {
-                await characteristic.startNotifications();
-                characteristic.addEventListener('characteristicvaluechanged', (event) => {
-                  console.log('Data received');
-                  const value = event.target.value;
-                  
-                  try {
-                    let weight = null;
-                    
-                    if (value.byteLength >= 4) {
-                      weight = value.getFloat32(1, true);
-                      
-                      if (weight < 20 || weight > 500) {
-                        weight = value.getFloat32(1, false);
-                      }
-                      
-                      if (weight < 20 || weight > 500) {
-                        const grams = value.getUint16(1, true);
-                        weight = grams / 453.592;
-                      }
-                    }
-                    
-                    if (weight && weight >= 20 && weight <= 500) {
-                      const today = new Date().toISOString().split('T')[0];
-                      
-                      setHealthData((prev) => {
-                        const existingIndex = prev.findIndex((entry) => entry.date === today);
-                        if (existingIndex >= 0) {
-                          const updated = [...prev];
-                          updated[existingIndex] = { ...updated[existingIndex], weight: weight.toFixed(1) };
-                          return updated;
-                        }
-                        return [...prev, { date: today, weight: weight.toFixed(1) }].sort((a, b) => new Date(a.date) - new Date(b.date));
-                      });
-                      
-                      alert('Weight recorded: ' + weight.toFixed(1) + ' lbs');
-                    }
-                  } catch (parseError) {
-                    console.log('Parse error');
-                  }
-                });
-                
-                weightFound = true;
-              } catch (notifyError) {
-                // Continue
-              }
-            }
-          }
-        } catch (serviceError) {
-          console.log('Service error');
-        }
-      }
-    }
-
-    if (weightFound) {
-      alert('Connected! Step on your scale to record weight.');
-    } else {
-      setBluetoothError('Connected but could not find weight data.');
-    }
-    console.log('Device found:', device.name);
-
-    const server = await device.gatt.connect();
-    setBluetoothDevice(device);
-    setIsBluetoothConnected(true);
-
-    device.addEventListener('gattserverdisconnected', () => {
-      setIsBluetoothConnected(false);
-      setBluetoothDevice(null);
-    });
-
-    const services = await server.getPrimaryServices();
-    console.log('Available services:', services.length);
-
-    let weightFound = false;
-
-    // Try standard weight scale service first
-    try {
-      const service = await server.getPrimaryService('body_composition');
-      const characteristic = await service.getCharacteristic('weight_measurement');
-      
-      await characteristic.startNotifications();
-      characteristic.addEventListener('characteristicvaluechanged', (event) => {
-        const value = event.target.value;
-        const weight = value.getFloat32(1, true);
-        
-       if (weight >= 20 && weight <= 500) {
-  const today = new Date().toISOString().split('T')[0];
-  
-  setHealthData(prev => {
-    const existingIndex = prev.findIndex(entry => entry.date === today);
-    if (existingIndex >= 0) {
-      const updated = [...prev];
-      updated[existingIndex] = { ...updated[existingIndex], weight: weight.toFixed(1) };
-      return updated;
-    }
-    return [...prev, { date: today, weight: weight.toFixed(1) }].sort((a, b) => new Date(a.date) - new Date(b.date));
-  });
-  
-  alert('Weight recorded: ' + weight.toFixed(1) + ' lbs');
-}
-      
-      weightFound = true;
-      console.log('Connected to standard weight service');
-    } catch (e) {
-      console.log('Standard service not found, trying other services...');
-    }
-
-    // If standard didn't work, try to read from any available characteristics
-    if (!weightFound) {
-      for (const service of services) {
-        try {
-          const characteristics = await service.getCharacteristics();
-          console.log(`Service ${service.uuid} has ${characteristics.length} characteristics`);
-          
-          for (const characteristic of characteristics) {
-            if (characteristic.properties.notify) {
-              try {
-                await characteristic.startNotifications();
-                characteristic.addEventListener('characteristicvaluechanged', (event) => {
-                  console.log('Data received from characteristic:', characteristic.uuid);
-                  const value = event.target.value;
-                  
-                  try {
-                    let weight = null;
-                    
-                    if (value.byteLength >= 4) {
-                      weight = value.getFloat32(1, true);
-                      
-                      if (weight < 20 || weight > 500) {
-                        weight = value.getFloat32(1, false);
-                      }
-                      
-                      if (weight < 20 || weight > 500) {
-                        const grams = value.getUint16(1, true);
-                        weight = grams / 453.592;
-                      }
-                    }
-                    
-                    if (weight && weight >= 20 && weight <= 500) {
-                      const today = new Date().toISOString().split('T')[0];
-                      
-                      setHealthData(prev => {
-                        const existingIndex = prev.findIndex(entry => entry.date === today);
-                        if (existingIndex >= 0) {
-                          const updated = [...prev];
-                          updated[existingIndex] = { ...updated[existingIndex], weight: weight.toFixed(1) };
-                          return updated;
-                        }
-                        return [...prev, { date: today, weight: weight.toFixed(1) }].sort((a, b) => 
-                          new Date(a.date) - new Date(b.date)
-                        );
-                      });
-                      
-                      alert(`Weight recorded: ${weight.toFixed(1)} lbs`);
-                    }
-                  } catch (parseError) {
-                    console.log('Could not parse weight data:', parseError);
-                  }
-                });
-                
-                console.log('Subscribed to characteristic:', characteristic.uuid);
-                weightFound = true;
-              } catch (notifyError) {
-                // Continue to next characteristic
-              }
-            }
-          }
-        } catch (serviceError) {
-          console.log('Error reading service:', serviceError);
-        }
-      }
-    }
-
-    if (weightFound) {
-      alert('Connected! Step on your scale to record weight.');
-    } else {
-      setBluetoothError('Connected to device, but could not find weight data. Your scale may require the official Renpho app.');
-    }
-
-  } catch (error) {
-    console.error('Bluetooth error:', error);
-    if (error.name === 'NotFoundError') {
-      setBluetoothError('No scale found. Make sure your scale is on and nearby.');
-    } else if (error.name === 'SecurityError') {
-      setBluetoothError('Bluetooth access denied. Check browser permissions.');
-    } else {
-      setBluetoothError(error.message || 'Failed to connect. Renpho scales work best with the official app.');
-    }
-  } finally {
-    setIsConnecting(false);
-  }
-};
-
-        
-        setHealthData(prev => {
-          const existingIndex = prev.findIndex(entry => entry.date === today);
-          if (existingIndex >= 0) {
-            const updated = [...prev];
-            updated[existingIndex] = { ...updated[existingIndex], weight: weight.toFixed(1) };
-            return updated;
-          }
-          return [...prev, newData].sort((a, b) => new Date(a.date) - new Date(b.date));
-        });
-        
-        alert(`Weight automatically recorded: ${weight.toFixed(1)} lbs`);
-      });
-
-    } catch (error) {
-      console.error('Bluetooth error:', error);
-      setBluetoothError(error.message || 'Failed to connect to scale');
-    } finally {
-      setIsConnecting(false);
-    }
-  };
-
-  const disconnectBluetoothScale = () => {
-    if (bluetoothDevice && bluetoothDevice.gatt.connected) {
-      bluetoothDevice.gatt.disconnect();
-    }
-    setBluetoothDevice(null);
-    setIsBluetoothConnected(false);
-  };
-
   // Fitbit Connection Functions
   const connectFitbit = async () => {
     setFitbitLoading(true);
@@ -427,7 +148,6 @@ const HealthTrackerApp = () => {
     setFitbitConnected(false);
     alert('Fitbit disconnected successfully');
   };
-
 const metrics = {
     weight: { label: 'Weight', unit: 'lbs', icon: Scale, group: 1 },
     bmi: { label: 'BMI', unit: '', icon: Activity, group: 1 },
@@ -901,7 +621,6 @@ const metrics = {
                   ))}
                 </div>
               </div>
-              {/* Fitbit Integration */}
           {/* Fitbit Integration */}
           <div className="bg-white rounded-xl shadow-lg p-4">
             <h3 className="font-bold text-gray-800 flex items-center space-x-2 text-sm mb-4">
@@ -921,41 +640,6 @@ const metrics = {
                     </p>
                   </div>
                 </div>
-                {fitbitConnected ? (
-                  <button
-                    onClick={disconnectFitbit}
-                    className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs hover:bg-red-200 transition"
-                  >
-                    Disconnect
-                  </button>
-                ) : (
-                  <button
-                    onClick={connectFitbit}
-                    disabled={fitbitLoading}
-                    className="px-3 py-1 bg-green-600 text-white rounded-lg text-xs hover:bg-green-700 transition disabled:opacity-50"
-                  >
-                    {fitbitLoading ? 'Connecting...' : 'Connect'}
-                  </button>
-                )}
-              </div>
-              
-              {fitbitError && (
-                <div className="flex items-start gap-2 p-3 bg-red-50 rounded-lg">
-                  <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-red-600">{fitbitError}</p>
-                </div>
-              )}
-              
-              {fitbitConnected && (
-                <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
-                  <Check className="w-4 h-4 text-green-600" />
-                  <p className="text-xs text-green-700">
-                    Fitbit connected! Use the Steps tab to log your activity.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
                 {fitbitConnected ? (
                   <button
                     onClick={disconnectFitbit}
