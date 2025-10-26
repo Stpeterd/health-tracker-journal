@@ -353,24 +353,21 @@ const connectBluetoothScale = async () => {
         const value = event.target.value;
         const weight = value.getFloat32(1, true);
         
-        if (weight >= 20 && weight <= 500) {
-          const today = new Date().toISOString().split('T')[0];
-          
-          setHealthData(prev => {
-            const existingIndex = prev.findIndex(entry => entry.date === today);
-            if (existingIndex >= 0) {
-              const updated = [...prev];
-              updated[existingIndex] = { ...updated[existingIndex], weight: weight.toFixed(1) };
-              return updated;
-            }
-            return [...prev, { date: today, weight: weight.toFixed(1) }].sort((a, b) => 
-              new Date(a.date) - new Date(b.date)
-            );
-          });
-          
-          alert(`Weight recorded: ${weight.toFixed(1)} lbs`);
-        }
-      });
+       if (weight >= 20 && weight <= 500) {
+  const today = new Date().toISOString().split('T')[0];
+  
+  setHealthData(prev => {
+    const existingIndex = prev.findIndex(entry => entry.date === today);
+    if (existingIndex >= 0) {
+      const updated = [...prev];
+      updated[existingIndex] = { ...updated[existingIndex], weight: weight.toFixed(1) };
+      return updated;
+    }
+    return [...prev, { date: today, weight: weight.toFixed(1) }].sort((a, b) => new Date(a.date) - new Date(b.date));
+  });
+  
+  alert('Weight recorded: ' + weight.toFixed(1) + ' lbs');
+}
       
       weightFound = true;
       console.log('Connected to standard weight service');
