@@ -233,21 +233,6 @@ const HealthTrackerApp = () => {
     } else {
       setBluetoothError('Connected but could not find weight data.');
     }
-
-  } catch (error) {
-    console.error('Bluetooth error:', error);
-    if (error.name === 'NotFoundError') {
-      setBluetoothError('No scale found. Make sure your scale is on and nearby.');
-    } else if (error.name === 'SecurityError') {
-      setBluetoothError('Bluetooth access denied. Check browser permissions.');
-    } else {
-      setBluetoothError('Failed to connect to scale.');
-    }
-  } finally {
-    setIsConnecting(false);
-  }
-};
-
     console.log('Device found:', device.name);
 
     const server = await device.gatt.connect();
