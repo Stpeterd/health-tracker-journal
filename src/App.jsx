@@ -21,11 +21,7 @@ const HealthTrackerApp = () => {
   const [editingStepsId, setEditingStepsId] = useState(null);
 
   // Bluetooth and Fitbit states
-  const [bluetoothSupported, setBluetoothSupported] = useState(true);
-  const [bluetoothDevice, setBluetoothDevice] = useState(null);
-  const [isBluetoothConnected, setIsBluetoothConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [bluetoothError, setBluetoothError] = useState('');
+  
   const [fitbitConnected, setFitbitConnected] = useState(false);
   const [fitbitLoading, setFitbitLoading] = useState(false);
   const [fitbitError, setFitbitError] = useState('');
@@ -125,64 +121,7 @@ const HealthTrackerApp = () => {
     notes: ''
   });
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('healthTrackerProfile', JSON.stringify(userProfile));
-    }
-  }, [userProfile]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('healthTrackerData', JSON.stringify(healthData));
-    }
-  }, [healthData]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('healthTrackerNotes', JSON.stringify(notes));
-    }
-  }, [notes]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('healthTrackerWater', JSON.stringify(waterIntake));
-    }
-  }, [waterIntake]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('healthTrackerExercises', JSON.stringify(exercises));
-    }
-  }, [exercises]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('healthTrackerMeals', JSON.stringify(meals));
-    }
-  }, [meals]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('healthTrackerSteps', JSON.stringify(steps));
-    }
-  }, [steps]);
-
-  
-  // Check Bluetooth support on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
-      setBluetoothSupported('bluetooth' in navigator);
-    }
-  }, []);
-
-
-  // Bluetooth Scale Functions
-const connectBluetoothScale = async () => {
-  if (!bluetoothSupported) {
-    setBluetoothError('Bluetooth not supported in this browser. Please use Chrome or Edge.');
-    return;
-  }
-
+ 
   alert('Renpho Scale Info:\n\n' +
         'Your Renpho ES-CS20M uses a proprietary Bluetooth protocol that only works with the official Renpho app.\n\n' +
         'To track your weight:\n' +
