@@ -183,32 +183,14 @@ const connectBluetoothScale = async () => {
     return;
   }
 
-  setIsConnecting(true);
-  setBluetoothError('');
-
-  try {
-    const device = await navigator.bluetooth.requestDevice({
-      filters: [
-        { services: ['body_composition'] },
-        { services: ['weight_scale'] },
-        { namePrefix: 'RENPHO' },
-        { namePrefix: 'Renpho' },
-        { namePrefix: 'Scale' },
-      ],
-      optionalServices: ['battery_service', 'device_information']
-    });
-
-    console.log('Device found:', device.name);
-
-    const server = await device.gatt.connect();
-    setBluetoothDevice(device);
-    setIsBluetoothConnected(true);
-
-    device.addEventListener('gattserverdisconnected', () => {
-      setIsBluetoothConnected(false);
-      setBluetoothDevice(null);
-    });
-
+  alert('Renpho Scale Info:\n\n' +
+        'Your Renpho ES-CS20M uses a proprietary Bluetooth protocol that only works with the official Renpho app.\n\n' +
+        'To track your weight:\n' +
+        '1. Weigh yourself with your Renpho scale\n' +
+        '2. Use the "Add Weight" button above to log it\n' +
+        '3. Takes just 3 seconds!\n\n' +
+        'For automatic syncing, you would need a generic Bluetooth scale ($25 on Amazon).');
+};
     const services = await server.getPrimaryServices();
     console.log('Available services:', services.length);
 
