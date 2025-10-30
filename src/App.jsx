@@ -19,6 +19,7 @@ const HealthTrackerApp = () => {
   const [showProfile, setShowProfile] = useState(false);
   const [showStepsModal, setShowStepsModal] = useState(false);
   const [editingStepsId, setEditingStepsId] = useState(null);
+  const [showCurrentWeekDetails, setShowCurrentWeekDetails] = useState(false);
 
   // Dark mode state
   const [darkMode, setDarkMode] = useState(() => {
@@ -259,7 +260,7 @@ const metrics = {
       previousWeek[metric] = calculateAvg(previousWeekData, metric);
     });
 
-    return { currentWeek, previousWeek };
+    return { currentWeek, previousWeek, currentWeekData };
   };
 
   const calculateHistoricalWeeklyAverages = () => {
@@ -299,7 +300,7 @@ const metrics = {
     return weeks;
   };
 
-  const { currentWeek, previousWeek } = calculateWeeklyAverages();
+  const { currentWeek, previousWeek, currentWeekData } = calculateWeeklyAverages();
   const weeklyTrends = calculateHistoricalWeeklyAverages();
 
   const getTrendIndicator = (current, previous) => {
@@ -792,30 +793,6 @@ const metrics = {
                 </div>
               </div>
             )}
-
-            <div className={`${bgCard} rounded-xl shadow-lg p-4`}>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className={`text-lg font-bold ${textPrimary}`}>History</h2>
-                <select value={selectedMetric} onChange={(e) => setSelectedMetric(e.target.value)} className={`${inputBg} border ${inputBorder} ${textPrimary} rounded-lg px-3 py-1 text-xs`}>
-                  {Object.entries(metrics).map(([key, { label }]) => (
-                    <option key={key} value={key}>{label}</option>
-                  ))}
-                </select>
-              </div>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={healthData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
-                  <XAxis dataKey="date" style={{fontSize: '10px'}} angle={-45} textAnchor="end" height={60} stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-                  <YAxis domain={selectedMetric === 'weight' ? [userProfile.targetWeight - 10, 'auto'] : ['auto', 'auto']} style={{fontSize: '11px'}} width={40} stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-                  <Tooltip contentStyle={{fontSize: '12px', backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`}} />
-                  <Legend wrapperStyle={{fontSize: '12px'}} />
-                  <Bar dataKey={selectedMetric} fill="#3b82f6" name={metrics[selectedMetric].label} />
-                  {selectedMetric === 'weight' && (
-                    <Line type="monotone" dataKey={() => userProfile.targetWeight} stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" name="Target" />
-                  )}
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
           </div>
         )}
 
@@ -1052,8 +1029,18 @@ const metrics = {
                       {group.map(([key, { label, unit }]) => {
                         const trend = getTrendIndicator(currentWeek[key], previousWeek[key]);
                         const TrendIcon = trend.icon;
+                        const isWeightMetric = key === 'weight';
                         return (
-                          <button key={key} onClick={() => { setSelectedWeeklyMetric(key); setShowWeeklyHistory(true); }}
+                          <button 
+                            key={key} 
+                            onClick={() => { 
+                              if (isWeightMetric) {
+                                setShowCurrentWeekDetails(true);
+                              } else {
+                                setSelectedWeeklyMetric(key); 
+                                setShowWeeklyHistory(true);
+                              }
+                            }}
                             className={`${darkMode ? 'bg-gray-700 border-gray-600' : `bg-gradient-to-br ${groupIndex === 0 ? 'from-blue-50 to-indigo-50 border-blue-100' : 'from-purple-50 to-pink-50 border-purple-100'}`} rounded-lg p-3 border-2 text-left hover:shadow-md transition`}>
                             <div className={`text-xs ${textSecondary} mb-1`}>{label}</div>
                             <div className="flex items-baseline justify-between">
@@ -1066,7 +1053,9 @@ const metrics = {
                               )}
                             </div>
                             <div className={`text-xs ${textSecondary} mt-1`}>Last week: {previousWeek[key]} {unit}</div>
-                            <div className={`text-xs mt-1 ${groupIndex === 0 ? 'text-blue-600' : 'text-purple-600'}`}>Tap for history →</div>
+                            <div className={`text-xs mt-1 ${groupIndex === 0 ? 'text-blue-600' : 'text-purple-600'}`}>
+                              {isWeightMetric ? 'Tap for entries →' : 'Tap for history →'}
+                            </div>
                           </button>
                         );
                       })}
@@ -1134,7 +1123,7 @@ const metrics = {
         )}
       </div>
 
-      {/* ALL MODALS - Just updating backgrounds and text colors */}
+      {/* ALL MODALS */}
       {showProfile && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className={`${bgCard} rounded-xl shadow-2xl max-w-md w-full`}>
@@ -1445,6 +1434,69 @@ const metrics = {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCurrentWeekDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className={`${bgCard} rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto`}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className={`text-xl font-bold ${textPrimary}`}>Current Week Weight Entries</h2>
+                <button onClick={() => setShowCurrentWeekDetails(false)} className={textSecondary + " hover:text-gray-700"}>
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-3">
+                {currentWeekData && currentWeekData.length > 0 ? (
+                  <>
+                    <div className={`${darkMode ? 'bg-blue-900 border-blue-700' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'} rounded-lg p-4 border-2 mb-4`}>
+                      <div className="text-center">
+                        <div className={`text-sm ${textSecondary} mb-1`}>Weekly Average</div>
+                        <div className="text-3xl font-bold text-blue-600">{currentWeek.weight} lbs</div>
+                        <div className={`text-xs ${textSecondary} mt-1`}>{currentWeekData.length} {currentWeekData.length === 1 ? 'entry' : 'entries'} this week</div>
+                      </div>
+                    </div>
+
+                    {currentWeekData.sort((a, b) => new Date(b.date) - new Date(a.date)).map((entry, index) => (
+                      <div key={index} className={`${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'} rounded-lg p-4 border`}>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <div className={`text-sm font-semibold ${textPrimary}`}>
+                              {new Date(entry.date).toLocaleDateString('en-US', { 
+                                weekday: 'long',
+                                month: 'short', 
+                                day: 'numeric' 
+                              })}
+                            </div>
+                            <div className={`text-xs ${textSecondary} mt-1`}>
+                              {new Date(entry.date).toLocaleDateString('en-US', { year: 'numeric' })}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-blue-600">
+                              {entry.weight}
+                              <span className={`text-sm font-normal ${textSecondary} ml-1`}>lbs</span>
+                            </div>
+                            {entry.bmi && (
+                              <div className={`text-xs ${textSecondary} mt-1`}>
+                                BMI: {entry.bmi}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <p className={`text-center ${textSecondary} py-8`}>No weight entries for this week yet.</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
