@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Scale, TrendingUp, TrendingDown, Calendar, Plus, Users, Activity, Download, Upload, FileText, Trash2, Edit2, AlertCircle, Droplets, Dumbbell, Utensils, Check, Sparkles } from 'lucide-react';
+import { Scale, TrendingUp, TrendingDown, Calendar, Plus, Users, Activity, Download, Upload, FileText, Trash2, Edit2, AlertCircle, Droplets, Dumbbell, Utensils, Check, Sparkles, Moon, Sun } from 'lucide-react';
 
 const HealthTrackerApp = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -19,6 +19,15 @@ const HealthTrackerApp = () => {
   const [showProfile, setShowProfile] = useState(false);
   const [showStepsModal, setShowStepsModal] = useState(false);
   const [editingStepsId, setEditingStepsId] = useState(null);
+
+  // Dark mode state
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('healthTrackerDarkMode');
+      return saved ? JSON.parse(saved) : false;
+    }
+    return false;
+  });
 
   // Fitbit states
   const [fitbitConnected, setFitbitConnected] = useState(false);
@@ -118,6 +127,14 @@ const HealthTrackerApp = () => {
     calories: '',
     notes: ''
   });
+
+  // Save dark mode preference
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('healthTrackerDarkMode', JSON.stringify(darkMode));
+    }
+  }, [darkMode]);
+
   // Fitbit Connection Functions
   const connectFitbit = async () => {
     setFitbitLoading(true);
@@ -148,6 +165,7 @@ const HealthTrackerApp = () => {
     setFitbitConnected(false);
     alert('Fitbit disconnected successfully');
   };
+
 const metrics = {
     weight: { label: 'Weight', unit: 'lbs', icon: Scale, group: 1 },
     bmi: { label: 'BMI', unit: '', icon: Activity, group: 1 },
@@ -524,6 +542,7 @@ const metrics = {
       exercises: exercises,
       meals: meals,
       steps: steps,
+      darkMode: darkMode,
       exportDate: new Date().toISOString()
     };
     
@@ -531,7 +550,7 @@ const metrics = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-                      a.download = `health-tracker-journal-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `health-tracker-journal-backup-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -553,6 +572,7 @@ const metrics = {
         if (imported.exercises) setExercises(imported.exercises);
         if (imported.meals) setMeals(imported.meals);
         if (imported.steps) setSteps(imported.steps);
+        if (imported.darkMode !== undefined) setDarkMode(imported.darkMode);
         alert('Data imported successfully!');
       } catch (error) {
         alert('Error importing data');
@@ -561,8 +581,17 @@ const metrics = {
     reader.readAsText(file);
   };
 
+  // Theme classes
+  const bgMain = darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 to-indigo-100';
+  const bgCard = darkMode ? 'bg-gray-800' : 'bg-white';
+  const textPrimary = darkMode ? 'text-white' : 'text-gray-800';
+  const textSecondary = darkMode ? 'text-gray-400' : 'text-gray-600';
+  const borderColor = darkMode ? 'border-gray-700' : 'border-gray-200';
+  const inputBg = darkMode ? 'bg-gray-700' : 'bg-white';
+  const inputBorder = darkMode ? 'border-gray-600' : 'border-gray-300';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className={`min-h-screen ${bgMain}`}>
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 md:p-6 shadow-lg">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -571,6 +600,13 @@ const metrics = {
               <h1 className="text-lg md:text-2xl font-bold">Health Tracker Journal</h1>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
+              <button 
+                onClick={() => setDarkMode(!darkMode)} 
+                className="bg-white bg-opacity-20 text-white p-2 rounded-lg hover:bg-opacity-30 transition" 
+                title={darkMode ? "Light Mode" : "Dark Mode"}
+              >
+                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
               <button onClick={handleExportData} className="bg-white bg-opacity-20 text-white p-2 rounded-lg hover:bg-opacity-30 transition" title="Export">
                 <Download className="w-5 h-5" />
               </button>
@@ -591,7 +627,7 @@ const metrics = {
         </div>
       </div>
 
-      <div className="bg-white shadow-md">
+      <div className={`${bgCard} shadow-md`}>
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex space-x-6 overflow-x-auto">
             {['dashboard', 'steps', 'activity', 'nutrition', 'weekly', 'notes'].map(tab => (
@@ -599,7 +635,7 @@ const metrics = {
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`py-4 px-2 border-b-2 font-medium transition whitespace-nowrap text-sm ${
-                  activeTab === tab ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-800'
+                  activeTab === tab ? 'border-blue-600 text-blue-600' : `border-transparent ${textSecondary} hover:text-gray-800 dark:hover:text-gray-200`
                 }`}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -612,30 +648,30 @@ const metrics = {
       <div className="max-w-6xl mx-auto p-4 pb-20">
         {activeTab === 'dashboard' && (
           <div className="space-y-4">
-            <div className="bg-white rounded-xl shadow-lg p-4">
+            <div className={`${bgCard} rounded-xl shadow-lg p-4`}>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-bold text-gray-800">Current Measurements</h2>
+                <h2 className={`text-lg font-bold ${textPrimary}`}>Current Measurements</h2>
                 <div className="flex space-x-2">
                   {[0, 1].map(i => (
-                    <button key={i} onClick={() => setCurrentDashboardCard(i)} className={`w-2 h-2 rounded-full transition ${currentDashboardCard === i ? 'bg-blue-600' : 'bg-gray-300'}`} />
+                    <button key={i} onClick={() => setCurrentDashboardCard(i)} className={`w-2 h-2 rounded-full transition ${currentDashboardCard === i ? 'bg-blue-600' : darkMode ? 'bg-gray-600' : 'bg-gray-300'}`} />
                   ))}
                 </div>
               </div>
           {/* Fitbit Integration */}
-          <div className="bg-white rounded-xl shadow-lg p-4">
-            <h3 className="font-bold text-gray-800 flex items-center space-x-2 text-sm mb-4">
+          <div className={`${bgCard} rounded-xl shadow-lg p-4`}>
+            <h3 className={`font-bold ${textPrimary} flex items-center space-x-2 text-sm mb-4`}>
               <Activity className="w-5 h-5 text-green-600" />
               <span>Connected Devices</span>
             </h3>
             
             <div className="space-y-3">
               {/* Fitbit */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className={`flex items-center justify-between p-3 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg`}>
                 <div className="flex items-center gap-3">
-                  <Activity className={`w-5 h-5 ${fitbitConnected ? 'text-green-600' : 'text-gray-400'}`} />
+                  <Activity className={`w-5 h-5 ${fitbitConnected ? 'text-green-600' : darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
                   <div>
-                    <p className="font-medium text-sm">Fitbit</p>
-                    <p className="text-xs text-gray-600">
+                    <p className={`font-medium text-sm ${textPrimary}`}>Fitbit</p>
+                    <p className={`text-xs ${textSecondary}`}>
                       {fitbitConnected ? 'Connected - Ready to sync' : 'Sync steps automatically'}
                     </p>
                   </div>
@@ -682,9 +718,9 @@ const metrics = {
                       {group.map(([key, { label, unit }]) => {
                         const latestValue = healthData[healthData.length - 1]?.[key] || 0;
                         return (
-                          <div key={key} className={`bg-gradient-to-br ${groupIndex === 0 ? 'from-blue-50 to-indigo-50' : 'from-purple-50 to-pink-50'} rounded-lg p-3`}>
-                            <div className="text-xs text-gray-600 mb-1">{label}</div>
-                            <div className="text-xl font-bold text-gray-800">{latestValue} <span className="text-xs font-normal text-gray-500">{unit}</span></div>
+                          <div key={key} className={`${darkMode ? 'bg-gray-700' : `bg-gradient-to-br ${groupIndex === 0 ? 'from-blue-50 to-indigo-50' : 'from-purple-50 to-pink-50'}`} rounded-lg p-3`}>
+                            <div className={`text-xs ${textSecondary} mb-1`}>{label}</div>
+                            <div className={`text-xl font-bold ${textPrimary}`}>{latestValue} <span className={`text-xs font-normal ${textSecondary}`}>{unit}</span></div>
                           </div>
                         );
                       })}
@@ -693,17 +729,17 @@ const metrics = {
                 </div>
               </div>
               
-              <div className="text-center mt-3 text-xs text-gray-500">Tap dots to switch →</div>
+              <div className={`text-center mt-3 text-xs ${textSecondary}`}>Tap dots to switch →</div>
             </div>
 
             {healthData.length > 0 && (
-              <div className="bg-white rounded-xl shadow-lg p-3">
+              <div className={`${bgCard} rounded-xl shadow-lg p-3`}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center space-x-2">
                     <Scale className="w-4 h-4 text-blue-600" />
-                    <h3 className="font-bold text-gray-800 text-sm">Goal Progress</h3>
+                    <h3 className={`font-bold ${textPrimary} text-sm`}>Goal Progress</h3>
                   </div>
-                  <div className="text-xs font-medium text-gray-600">
+                  <div className={`text-xs font-medium ${textSecondary}`}>
                     {(() => {
                       const current = healthData[healthData.length - 1]?.weight || 0;
                       const start = healthData[0]?.weight || current;
@@ -718,20 +754,20 @@ const metrics = {
                 
                 <div className="grid grid-cols-3 gap-2 mb-2">
                   <div className="text-center">
-                    <div className="text-xs text-gray-500">Current</div>
-                    <div className="text-base font-bold text-gray-800">{healthData[healthData.length - 1]?.weight || 0}</div>
+                    <div className={`text-xs ${textSecondary}`}>Current</div>
+                    <div className={`text-base font-bold ${textPrimary}`}>{healthData[healthData.length - 1]?.weight || 0}</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-gray-500">Goal</div>
+                    <div className={`text-xs ${textSecondary}`}>Goal</div>
                     <div className="text-base font-bold text-blue-600">{userProfile.targetWeight}</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-gray-500">To Go</div>
+                    <div className={`text-xs ${textSecondary}`}>To Go</div>
                     <div className="text-base font-bold text-green-600">{Math.abs((healthData[healthData.length - 1]?.weight || 0) - userProfile.targetWeight).toFixed(1)}</div>
                   </div>
                 </div>
                 
-                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div className={`w-full ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2 overflow-hidden`}>
                   <div className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-500" style={{
                     width: `${(() => {
                       const current = healthData[healthData.length - 1]?.weight || 0;
@@ -744,7 +780,7 @@ const metrics = {
                   }} />
                 </div>
                 
-                <div className="text-center mt-2 text-xs font-medium text-gray-600">
+                <div className={`text-center mt-2 text-xs font-medium ${textSecondary}`}>
                   {(() => {
                     const current = healthData[healthData.length - 1]?.weight || 0;
                     const target = userProfile.targetWeight;
@@ -757,10 +793,10 @@ const metrics = {
               </div>
             )}
 
-            <div className="bg-white rounded-xl shadow-lg p-4">
+            <div className={`${bgCard} rounded-xl shadow-lg p-4`}>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-bold text-gray-800">History</h2>
-                <select value={selectedMetric} onChange={(e) => setSelectedMetric(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-1 text-xs">
+                <h2 className={`text-lg font-bold ${textPrimary}`}>History</h2>
+                <select value={selectedMetric} onChange={(e) => setSelectedMetric(e.target.value)} className={`${inputBg} border ${inputBorder} ${textPrimary} rounded-lg px-3 py-1 text-xs`}>
                   {Object.entries(metrics).map(([key, { label }]) => (
                     <option key={key} value={key}>{label}</option>
                   ))}
@@ -768,10 +804,10 @@ const metrics = {
               </div>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={healthData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" style={{fontSize: '10px'}} angle={-45} textAnchor="end" height={60} />
-                  <YAxis domain={selectedMetric === 'weight' ? [userProfile.targetWeight - 10, 'auto'] : ['auto', 'auto']} style={{fontSize: '11px'}} width={40} />
-                  <Tooltip contentStyle={{fontSize: '12px'}} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+                  <XAxis dataKey="date" style={{fontSize: '10px'}} angle={-45} textAnchor="end" height={60} stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+                  <YAxis domain={selectedMetric === 'weight' ? [userProfile.targetWeight - 10, 'auto'] : ['auto', 'auto']} style={{fontSize: '11px'}} width={40} stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+                  <Tooltip contentStyle={{fontSize: '12px', backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`}} />
                   <Legend wrapperStyle={{fontSize: '12px'}} />
                   <Bar dataKey={selectedMetric} fill="#3b82f6" name={metrics[selectedMetric].label} />
                   {selectedMetric === 'weight' && (
@@ -785,9 +821,9 @@ const metrics = {
 
         {activeTab === 'steps' && (
           <div className="space-y-4">
-            <div className="bg-white rounded-xl shadow-lg p-4">
+            <div className={`${bgCard} rounded-xl shadow-lg p-4`}>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-bold text-gray-800 flex items-center space-x-2">
+                <h2 className={`text-lg font-bold ${textPrimary} flex items-center space-x-2`}>
                   <Activity className="w-5 h-5 text-blue-500" />
                   <span>Steps Tracker</span>
                 </h2>
@@ -797,21 +833,21 @@ const metrics = {
                 </button>
               </div>
               
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 mb-3">
+              <div className={`${darkMode ? 'bg-gray-700' : 'bg-gradient-to-r from-blue-50 to-indigo-50'} rounded-lg p-4 mb-3`}>
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div>
-                    <div className="text-xs text-gray-600">Today's Steps</div>
+                    <div className={`text-xs ${textSecondary}`}>Today's Steps</div>
                     <div className="text-3xl font-bold text-blue-600">{getTodaySteps().toLocaleString()}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-600">Calories Burned</div>
+                    <div className={`text-xs ${textSecondary}`}>Calories Burned</div>
                     <div className="text-3xl font-bold text-green-600">{getTodayStepsCalories()}</div>
                   </div>
                 </div>
-                <div className="mt-3 text-center text-xs text-gray-600">
+                <div className={`mt-3 text-center text-xs ${textSecondary}`}>
                   🎯 Goal: 10,000 steps • {((getTodaySteps() / 10000) * 100).toFixed(0)}% complete
                 </div>
-                <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                <div className={`mt-2 w-full ${darkMode ? 'bg-gray-600' : 'bg-gray-200'} rounded-full h-2`}>
                   <div 
                     className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-500"
                     style={{ width: `${Math.min((getTodaySteps() / 10000) * 100, 100)}%` }}
@@ -821,17 +857,17 @@ const metrics = {
               
               <div className="space-y-2">
                 {steps.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400">
+                  <div className={`text-center py-8 ${textSecondary}`}>
                     <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">No steps logged yet</p>
                   </div>
                 ) : (
                   steps.map((step) => (
-                    <div key={step.id} className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-3 border border-blue-100">
+                    <div key={step.id} className={`${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-100'} rounded-lg p-3 border`}>
                       <div className="flex justify-between items-start mb-1">
                         <div>
-                          <span className="text-xs text-gray-500 font-medium">{step.date} • {step.time}</span>
-                          <div className="font-bold text-gray-800 text-sm mt-1">👟 {step.count.toLocaleString()} steps</div>
+                          <span className={`text-xs ${textSecondary} font-medium`}>{step.date} • {step.time}</span>
+                          <div className={`font-bold ${textPrimary} text-sm mt-1`}>👟 {step.count.toLocaleString()} steps</div>
                         </div>
                         <div className="flex space-x-2">
                           <button onClick={() => handleEditSteps(step)} className="text-blue-500 hover:text-blue-700 transition" title="Edit">
@@ -843,9 +879,9 @@ const metrics = {
                         </div>
                       </div>
                       <div className="flex gap-3 text-xs">
-                        <div><span className="text-gray-600">Calories:</span> <span className="font-medium text-green-600">~{step.calories}</span></div>
+                        <div><span className={textSecondary}>Calories:</span> <span className="font-medium text-green-600">~{step.calories}</span></div>
                       </div>
-                      {step.notes && <p className="text-xs text-gray-700 mt-1">{step.notes}</p>}
+                      {step.notes && <p className={`text-xs ${textPrimary} mt-1`}>{step.notes}</p>}
                     </div>
                   ))
                 )}
@@ -856,9 +892,9 @@ const metrics = {
 
         {activeTab === 'activity' && (
           <div className="space-y-4">
-            <div className="bg-white rounded-xl shadow-lg p-4">
+            <div className={`${bgCard} rounded-xl shadow-lg p-4`}>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-bold text-gray-800 flex items-center space-x-2">
+                <h2 className={`text-lg font-bold ${textPrimary} flex items-center space-x-2`}>
                   <Dumbbell className="w-5 h-5 text-orange-500" />
                   <span>Exercise Log</span>
                 </h2>
@@ -870,28 +906,28 @@ const metrics = {
               
               <div className="space-y-2">
                 {exercises.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400">
+                  <div className={`text-center py-8 ${textSecondary}`}>
                     <Dumbbell className="w-12 h-12 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">No exercises logged yet</p>
                   </div>
                 ) : (
                   exercises.map((ex) => (
-                    <div key={ex.id} className="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg p-3 border border-orange-100">
+                    <div key={ex.id} className={`${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gradient-to-r from-orange-50 to-red-50 border-orange-100'} rounded-lg p-3 border`}>
                       <div className="flex justify-between items-start mb-1">
                         <div>
-                          <span className="text-xs text-gray-500 font-medium">{ex.date} • {ex.time}</span>
-                          <div className="font-bold text-gray-800 text-sm mt-1">{ex.type.charAt(0).toUpperCase() + ex.type.slice(1)}</div>
+                          <span className={`text-xs ${textSecondary} font-medium`}>{ex.date} • {ex.time}</span>
+                          <div className={`font-bold ${textPrimary} text-sm mt-1`}>{ex.type.charAt(0).toUpperCase() + ex.type.slice(1)}</div>
                         </div>
                         <button onClick={() => handleDeleteExercise(ex.id)} className="text-red-500 hover:text-red-700 transition">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-xs">
-                        <div><span className="text-gray-600">Duration:</span> <span className="font-medium">{ex.duration}min</span></div>
-                        <div><span className="text-gray-600">Intensity:</span> <span className="font-medium">{ex.intensity}</span></div>
-                        {ex.calories && <div><span className="text-gray-600">Calories:</span> <span className="font-medium">{ex.calories}</span></div>}
+                        <div><span className={textSecondary}>Duration:</span> <span className="font-medium">{ex.duration}min</span></div>
+                        <div><span className={textSecondary}>Intensity:</span> <span className="font-medium">{ex.intensity}</span></div>
+                        {ex.calories && <div><span className={textSecondary}>Calories:</span> <span className="font-medium">{ex.calories}</span></div>}
                       </div>
-                      {ex.notes && <p className="text-xs text-gray-700 mt-1">{ex.notes}</p>}
+                      {ex.notes && <p className={`text-xs ${textPrimary} mt-1`}>{ex.notes}</p>}
                     </div>
                   ))
                 )}
@@ -902,9 +938,9 @@ const metrics = {
 
         {activeTab === 'nutrition' && (
           <div className="space-y-4">
-            <div className="bg-white rounded-xl shadow-lg p-4">
+            <div className={`${bgCard} rounded-xl shadow-lg p-4`}>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-bold text-gray-800 flex items-center space-x-2">
+                <h2 className={`text-lg font-bold ${textPrimary} flex items-center space-x-2`}>
                   <Utensils className="w-5 h-5 text-green-500" />
                   <span>Meal Log</span>
                 </h2>
@@ -914,45 +950,45 @@ const metrics = {
                 </button>
               </div>
               
-              <div className="bg-green-50 rounded-lg p-3 mb-3">
+              <div className={`${darkMode ? 'bg-gray-700' : 'bg-green-50'} rounded-lg p-3 mb-3`}>
                 <div className="text-center">
-                  <div className="text-xs text-gray-600">Today's Calories</div>
+                  <div className={`text-xs ${textSecondary}`}>Today's Calories</div>
                   <div className="text-2xl font-bold text-green-600">{getTodayCalories()}</div>
                 </div>
               </div>
               
               <div className="space-y-2">
                 {meals.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400">
+                  <div className={`text-center py-8 ${textSecondary}`}>
                     <Utensils className="w-12 h-12 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">No meals logged yet</p>
                   </div>
                 ) : (
                   meals.map((meal) => (
-                    <div key={meal.id} className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-100">
+                    <div key={meal.id} className={`${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-100'} rounded-lg p-3 border`}>
                       <div className="flex justify-between items-start mb-1">
                         <div>
-                          <span className="text-xs text-gray-500 font-medium">{meal.date} • {meal.time}</span>
-                          <div className="font-bold text-gray-800 text-sm mt-1">{meal.name}</div>
+                          <span className={`text-xs ${textSecondary} font-medium`}>{meal.date} • {meal.time}</span>
+                          <div className={`font-bold ${textPrimary} text-sm mt-1`}>{meal.name}</div>
                         </div>
                         <button onClick={() => handleDeleteMeal(meal.id)} className="text-red-500 hover:text-red-700 transition">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                       <div className="flex gap-3 text-xs">
-                        <div><span className="text-gray-600">Type:</span> <span className="font-medium">{meal.type.charAt(0).toUpperCase() + meal.type.slice(1)}</span></div>
-                        <div><span className="text-gray-600">Calories:</span> <span className="font-medium text-green-600">{meal.calories || 0}</span></div>
+                        <div><span className={textSecondary}>Type:</span> <span className="font-medium">{meal.type.charAt(0).toUpperCase() + meal.type.slice(1)}</span></div>
+                        <div><span className={textSecondary}>Calories:</span> <span className="font-medium text-green-600">{meal.calories || 0}</span></div>
                       </div>
-                      {meal.notes && <p className="text-xs text-gray-700 mt-1">{meal.notes}</p>}
+                      {meal.notes && <p className={`text-xs ${textPrimary} mt-1`}>{meal.notes}</p>}
                     </div>
                   ))
                 )}
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-4">
+            <div className={`${bgCard} rounded-xl shadow-lg p-4`}>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-bold text-gray-800 flex items-center space-x-2">
+                <h2 className={`text-lg font-bold ${textPrimary} flex items-center space-x-2`}>
                   <Droplets className="w-5 h-5 text-blue-500" />
                   <span>Water Intake</span>
                 </h2>
@@ -960,10 +996,10 @@ const metrics = {
               
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">Today's Progress</span>
-                  <span className="text-sm font-medium">{getTodayWater().total}oz / {getTodayWater().goal}oz</span>
+                  <span className={`text-sm ${textSecondary}`}>Today's Progress</span>
+                  <span className={`text-sm font-medium ${textPrimary}`}>{getTodayWater().total}oz / {getTodayWater().goal}oz</span>
                 </div>
-                <div className="relative h-6 bg-gray-200 rounded-full overflow-hidden">
+                <div className={`relative h-6 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden`}>
                   <div 
                     className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-500"
                     style={{ width: `${Math.min((getTodayWater().total / getTodayWater().goal) * 100, 100)}%` }}
@@ -972,18 +1008,18 @@ const metrics = {
               </div>
               
               <div className="flex gap-2 mb-3">
-                <button onClick={() => addWater(8)} className="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg font-medium hover:bg-blue-200 transition text-sm">+8oz</button>
-                <button onClick={() => addWater(16)} className="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg font-medium hover:bg-blue-200 transition text-sm">+16oz</button>
-                <button onClick={() => addWater(32)} className="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg font-medium hover:bg-blue-200 transition text-sm">+32oz</button>
+                <button onClick={() => addWater(8)} className={`flex-1 ${darkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-700'} py-2 rounded-lg font-medium hover:bg-opacity-80 transition text-sm`}>+8oz</button>
+                <button onClick={() => addWater(16)} className={`flex-1 ${darkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-700'} py-2 rounded-lg font-medium hover:bg-opacity-80 transition text-sm`}>+16oz</button>
+                <button onClick={() => addWater(32)} className={`flex-1 ${darkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-700'} py-2 rounded-lg font-medium hover:bg-opacity-80 transition text-sm`}>+32oz</button>
               </div>
               
               {getTodayWater().entries.length > 0 && (
                 <div>
-                  <h3 className="font-medium text-gray-700 mb-2 text-sm">Today's Log:</h3>
+                  <h3 className={`font-medium ${textPrimary} mb-2 text-sm`}>Today's Log:</h3>
                   <div className="space-y-1">
                     {getTodayWater().entries.map((entry, index) => (
-                      <div key={index} className="flex justify-between text-sm bg-blue-50 rounded px-3 py-2">
-                        <span className="text-gray-600">{entry.time}</span>
+                      <div key={index} className={`flex justify-between text-sm ${darkMode ? 'bg-gray-700' : 'bg-blue-50'} rounded px-3 py-2`}>
+                        <span className={textSecondary}>{entry.time}</span>
                         <span className="font-medium text-blue-600">+{entry.amount}oz</span>
                       </div>
                     ))}
@@ -996,15 +1032,15 @@ const metrics = {
 
         {activeTab === 'weekly' && (
           <div className="space-y-4">
-            <div className="bg-white rounded-xl shadow-lg p-4">
+            <div className={`${bgCard} rounded-xl shadow-lg p-4`}>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-bold text-gray-800 flex items-center space-x-2">
+                <h2 className={`text-lg font-bold ${textPrimary} flex items-center space-x-2`}>
                   <Calendar className="w-5 h-5" />
                   <span>Weekly Averages</span>
                 </h2>
                 <div className="flex space-x-2">
                   {[0, 1].map(i => (
-                    <button key={i} onClick={() => setCurrentWeeklyCard(i)} className={`w-2 h-2 rounded-full transition ${currentWeeklyCard === i ? 'bg-blue-600' : 'bg-gray-300'}`} />
+                    <button key={i} onClick={() => setCurrentWeeklyCard(i)} className={`w-2 h-2 rounded-full transition ${currentWeeklyCard === i ? 'bg-blue-600' : darkMode ? 'bg-gray-600' : 'bg-gray-300'}`} />
                   ))}
                 </div>
               </div>
@@ -1018,10 +1054,10 @@ const metrics = {
                         const TrendIcon = trend.icon;
                         return (
                           <button key={key} onClick={() => { setSelectedWeeklyMetric(key); setShowWeeklyHistory(true); }}
-                            className={`bg-gradient-to-br ${groupIndex === 0 ? 'from-blue-50 to-indigo-50 border-blue-100' : 'from-purple-50 to-pink-50 border-purple-100'} rounded-lg p-3 border-2 text-left hover:shadow-md transition`}>
-                            <div className="text-xs text-gray-600 mb-1">{label}</div>
+                            className={`${darkMode ? 'bg-gray-700 border-gray-600' : `bg-gradient-to-br ${groupIndex === 0 ? 'from-blue-50 to-indigo-50 border-blue-100' : 'from-purple-50 to-pink-50 border-purple-100'}`} rounded-lg p-3 border-2 text-left hover:shadow-md transition`}>
+                            <div className={`text-xs ${textSecondary} mb-1`}>{label}</div>
                             <div className="flex items-baseline justify-between">
-                              <div className="text-xl font-bold text-gray-800">{currentWeek[key]} <span className="text-xs font-normal text-gray-500">{unit}</span></div>
+                              <div className={`text-xl font-bold ${textPrimary}`}>{currentWeek[key]} <span className={`text-xs font-normal ${textSecondary}`}>{unit}</span></div>
                               {TrendIcon && (
                                 <div className={`flex items-center space-x-1 ${trend.color}`}>
                                   <TrendIcon className="w-3 h-3" />
@@ -1029,7 +1065,7 @@ const metrics = {
                                 </div>
                               )}
                             </div>
-                            <div className="text-xs text-gray-500 mt-1">Last week: {previousWeek[key]} {unit}</div>
+                            <div className={`text-xs ${textSecondary} mt-1`}>Last week: {previousWeek[key]} {unit}</div>
                             <div className={`text-xs mt-1 ${groupIndex === 0 ? 'text-blue-600' : 'text-purple-600'}`}>Tap for history →</div>
                           </button>
                         );
@@ -1039,16 +1075,16 @@ const metrics = {
                 </div>
               </div>
               
-              <div className="text-center mt-3 text-xs text-gray-500">Tap dots to switch →</div>
+              <div className={`text-center mt-3 text-xs ${textSecondary}`}>Tap dots to switch →</div>
             </div>
           </div>
         )}
 
         {activeTab === 'notes' && (
           <div className="space-y-4">
-            <div className="bg-white rounded-xl shadow-lg p-4">
+            <div className={`${bgCard} rounded-xl shadow-lg p-4`}>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-bold text-gray-800 flex items-center space-x-2">
+                <h2 className={`text-lg font-bold ${textPrimary} flex items-center space-x-2`}>
                   <FileText className="w-5 h-5" />
                   <span>Notes</span>
                 </h2>
@@ -1058,19 +1094,19 @@ const metrics = {
                 </button>
               </div>
               
-              <p className="text-xs text-gray-600 mb-3">Track diet changes, exercises, or lifestyle adjustments 📝</p>
+              <p className={`text-xs ${textSecondary} mb-3`}>Track diet changes, exercises, or lifestyle adjustments 📝</p>
 
               <div className="space-y-2">
                 {notes.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400">
+                  <div className={`text-center py-8 ${textSecondary}`}>
                     <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">No notes yet</p>
                   </div>
                 ) : (
                   notes.map((note) => (
-                    <div key={note.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
+                    <div key={note.id} className={`${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100'} rounded-lg p-3 border`}>
                       <div className="flex justify-between items-start mb-1">
-                        <span className="text-xs text-gray-500 font-medium">{note.displayDate}</span>
+                        <span className={`text-xs ${textSecondary} font-medium`}>{note.displayDate}</span>
                         <div className="flex space-x-2">
                           <button onClick={() => handleEditNote(note)} className="text-blue-500 hover:text-blue-700 transition" title="Edit">
                             <Edit2 className="w-3 h-3" />
@@ -1080,7 +1116,7 @@ const metrics = {
                           </button>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-800 whitespace-pre-wrap">{note.text}</p>
+                      <p className={`text-sm ${textPrimary} whitespace-pre-wrap`}>{note.text}</p>
                     </div>
                   ))
                 )}
@@ -1089,49 +1125,50 @@ const metrics = {
 
             <button
               onClick={() => setShowDisclaimer(true)}
-              className="w-full bg-gradient-to-r from-yellow-100 to-orange-100 border-2 border-yellow-300 rounded-xl p-3 hover:from-yellow-200 hover:to-orange-200 transition flex items-center justify-center space-x-2"
+              className={`w-full ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gradient-to-r from-yellow-100 to-orange-100 border-yellow-300'} border-2 rounded-xl p-3 hover:opacity-80 transition flex items-center justify-center space-x-2`}
             >
               <span className="text-xl">⚠️</span>
-              <span className="font-semibold text-yellow-800 text-sm">View Calculation Disclaimer</span>
+              <span className={`font-semibold text-sm ${darkMode ? 'text-yellow-400' : 'text-yellow-800'}`}>View Calculation Disclaimer</span>
             </button>
           </div>
         )}
       </div>
 
+      {/* ALL MODALS - Just updating backgrounds and text colors */}
       {showProfile && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+          <div className={`${bgCard} rounded-xl shadow-2xl max-w-md w-full`}>
             <div className="p-5">
-              <h2 className="text-xl font-bold text-gray-800 mb-3">Profile Settings</h2>
+              <h2 className={`text-xl font-bold ${textPrimary} mb-3`}>Profile Settings</h2>
               
               <div className="space-y-3 mb-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Height (ft)</label>
-                    <input type="number" value={userProfile.heightFeet} onChange={(e) => setUserProfile({...userProfile, heightFeet: parseInt(e.target.value) || 0})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                    <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Height (ft)</label>
+                    <input type="number" value={userProfile.heightFeet} onChange={(e) => setUserProfile({...userProfile, heightFeet: parseInt(e.target.value) || 0})} className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 text-sm`} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Height (in)</label>
-                    <input type="number" value={userProfile.heightInches} onChange={(e) => setUserProfile({...userProfile, heightInches: parseInt(e.target.value) || 0})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                    <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Height (in)</label>
+                    <input type="number" value={userProfile.heightInches} onChange={(e) => setUserProfile({...userProfile, heightInches: parseInt(e.target.value) || 0})} className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 text-sm`} />
                   </div>
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
-                  <input type="number" value={userProfile.age} onChange={(e) => setUserProfile({...userProfile, age: parseInt(e.target.value) || 0})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                  <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Age</label>
+                  <input type="number" value={userProfile.age} onChange={(e) => setUserProfile({...userProfile, age: parseInt(e.target.value) || 0})} className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 text-sm`} />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                  <select value={userProfile.gender} onChange={(e) => setUserProfile({...userProfile, gender: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Gender</label>
+                  <select value={userProfile.gender} onChange={(e) => setUserProfile({...userProfile, gender: e.target.value})} className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 text-sm`}>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
                   </select>
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Target Weight (lbs)</label>
-                  <input type="number" value={userProfile.targetWeight} onChange={(e) => setUserProfile({...userProfile, targetWeight: parseFloat(e.target.value) || 0})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                  <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Target Weight (lbs)</label>
+                  <input type="number" value={userProfile.targetWeight} onChange={(e) => setUserProfile({...userProfile, targetWeight: parseFloat(e.target.value) || 0})} className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 text-sm`} />
                 </div>
               </div>
               
@@ -1143,25 +1180,25 @@ const metrics = {
 
       {showAddData && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+          <div className={`${bgCard} rounded-xl shadow-2xl max-w-md w-full`}>
             <div className="p-5">
-              <h2 className="text-xl font-bold text-gray-800 mb-3">Add Weight Entry</h2>
+              <h2 className={`text-xl font-bold ${textPrimary} mb-3`}>Add Weight Entry</h2>
               
               <div className="space-y-3 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                  <input type="date" value={newEntry.date} onChange={(e) => setNewEntry({...newEntry, date: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                  <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Date</label>
+                  <input type="date" value={newEntry.date} onChange={(e) => setNewEntry({...newEntry, date: e.target.value})} className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 text-sm`} />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Weight (lbs)</label>
-                  <input type="number" step="0.1" value={newEntry.weight} onChange={(e) => setNewEntry({...newEntry, weight: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="175.5" autoFocus />
+                  <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Weight (lbs)</label>
+                  <input type="number" step="0.1" value={newEntry.weight} onChange={(e) => setNewEntry({...newEntry, weight: e.target.value})} className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 text-sm`} placeholder="175.5" autoFocus />
                 </div>
               </div>
               
               <div className="flex space-x-2">
                 <button onClick={handleAddData} className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition text-sm">Save</button>
-                <button onClick={() => { setShowAddData(false); setNewEntry({ date: new Date().toISOString().split('T')[0], weight: '' }); }} className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg font-medium hover:bg-gray-300 transition text-sm">Cancel</button>
+                <button onClick={() => { setShowAddData(false); setNewEntry({ date: new Date().toISOString().split('T')[0], weight: '' }); }} className={`flex-1 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} ${textPrimary} py-2 rounded-lg font-medium hover:bg-opacity-80 transition text-sm`}>Cancel</button>
               </div>
             </div>
           </div>
@@ -1170,14 +1207,14 @@ const metrics = {
 
       {showExerciseModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+          <div className={`${bgCard} rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto`}>
             <div className="p-5">
-              <h2 className="text-xl font-bold text-gray-800 mb-3">Log Exercise</h2>
+              <h2 className={`text-xl font-bold ${textPrimary} mb-3`}>Log Exercise</h2>
               
               <div className="space-y-3 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                  <select value={newExercise.type} onChange={(e) => setNewExercise({...newExercise, type: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Type</label>
+                  <select value={newExercise.type} onChange={(e) => setNewExercise({...newExercise, type: e.target.value})} className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 text-sm`}>
                     <option value="cardio">Cardio</option>
                     <option value="strength">Strength</option>
                     <option value="flexibility">Flexibility</option>
@@ -1187,13 +1224,13 @@ const metrics = {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Duration (min)</label>
-                  <input type="number" value={newExercise.duration} onChange={(e) => setNewExercise({...newExercise, duration: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="30" />
+                  <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Duration (min)</label>
+                  <input type="number" value={newExercise.duration} onChange={(e) => setNewExercise({...newExercise, duration: e.target.value})} className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 text-sm`} placeholder="30" />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Intensity</label>
-                  <select value={newExercise.intensity} onChange={(e) => setNewExercise({...newExercise, intensity: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Intensity</label>
+                  <select value={newExercise.intensity} onChange={(e) => setNewExercise({...newExercise, intensity: e.target.value})} className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 text-sm`}>
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
@@ -1201,19 +1238,19 @@ const metrics = {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Calories (optional)</label>
-                  <input type="number" value={newExercise.calories} onChange={(e) => setNewExercise({...newExercise, calories: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="250" />
+                  <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Calories (optional)</label>
+                  <input type="number" value={newExercise.calories} onChange={(e) => setNewExercise({...newExercise, calories: e.target.value})} className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 text-sm`} placeholder="250" />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
-                  <textarea value={newExercise.notes} onChange={(e) => setNewExercise({...newExercise, notes: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 h-16 resize-none text-sm" placeholder="5K run, leg day..." />
+                  <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Notes (optional)</label>
+                  <textarea value={newExercise.notes} onChange={(e) => setNewExercise({...newExercise, notes: e.target.value})} className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 h-16 resize-none text-sm`} placeholder="5K run, leg day..." />
                 </div>
               </div>
               
               <div className="flex space-x-2">
                 <button onClick={handleAddExercise} className="flex-1 bg-orange-600 text-white py-2 rounded-lg font-medium hover:bg-orange-700 transition text-sm">Save</button>
-                <button onClick={() => { setShowExerciseModal(false); setNewExercise({ type: 'cardio', duration: '', intensity: 'medium', calories: '', notes: '' }); }} className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg font-medium hover:bg-gray-300 transition text-sm">Cancel</button>
+                <button onClick={() => { setShowExerciseModal(false); setNewExercise({ type: 'cardio', duration: '', intensity: 'medium', calories: '', notes: '' }); }} className={`flex-1 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} ${textPrimary} py-2 rounded-lg font-medium hover:bg-opacity-80 transition text-sm`}>Cancel</button>
               </div>
             </div>
           </div>
@@ -1222,14 +1259,14 @@ const metrics = {
 
       {showMealModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+          <div className={`${bgCard} rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto`}>
             <div className="p-5">
-              <h2 className="text-xl font-bold text-gray-800 mb-3">Log Meal</h2>
+              <h2 className={`text-xl font-bold ${textPrimary} mb-3`}>Log Meal</h2>
               
               <div className="space-y-3 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                  <select value={newMeal.type} onChange={(e) => setNewMeal({...newMeal, type: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Type</label>
+                  <select value={newMeal.type} onChange={(e) => setNewMeal({...newMeal, type: e.target.value})} className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 text-sm`}>
                     <option value="breakfast">Breakfast</option>
                     <option value="lunch">Lunch</option>
                     <option value="dinner">Dinner</option>
@@ -1238,24 +1275,24 @@ const metrics = {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Meal Name</label>
-                  <input type="text" value={newMeal.name} onChange={(e) => setNewMeal({...newMeal, name: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Grilled chicken salad" autoFocus />
+                  <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Meal Name</label>
+                  <input type="text" value={newMeal.name} onChange={(e) => setNewMeal({...newMeal, name: e.target.value})} className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 text-sm`} placeholder="Grilled chicken salad" autoFocus />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Calories</label>
-                  <input type="number" value={newMeal.calories} onChange={(e) => setNewMeal({...newMeal, calories: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="500" />
+                  <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Calories</label>
+                  <input type="number" value={newMeal.calories} onChange={(e) => setNewMeal({...newMeal, calories: e.target.value})} className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 text-sm`} placeholder="500" />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
-                  <textarea value={newMeal.notes} onChange={(e) => setNewMeal({...newMeal, notes: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 h-16 resize-none text-sm" placeholder="Ingredients, macros..." />
+                  <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Notes (optional)</label>
+                  <textarea value={newMeal.notes} onChange={(e) => setNewMeal({...newMeal, notes: e.target.value})} className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 h-16 resize-none text-sm`} placeholder="Ingredients, macros..." />
                 </div>
               </div>
               
               <div className="flex space-x-2">
                 <button onClick={handleAddMeal} className="flex-1 bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700 transition text-sm">Save</button>
-                <button onClick={() => { setShowMealModal(false); setNewMeal({ type: 'breakfast', name: '', calories: '', notes: '' }); }} className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg font-medium hover:bg-gray-300 transition text-sm">Cancel</button>
+                <button onClick={() => { setShowMealModal(false); setNewMeal({ type: 'breakfast', name: '', calories: '', notes: '' }); }} className={`flex-1 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} ${textPrimary} py-2 rounded-lg font-medium hover:bg-opacity-80 transition text-sm`}>Cancel</button>
               </div>
             </div>
           </div>
@@ -1264,18 +1301,18 @@ const metrics = {
 
       {showNoteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+          <div className={`${bgCard} rounded-xl shadow-2xl max-w-md w-full`}>
             <div className="p-5">
-              <h2 className="text-xl font-bold text-gray-800 mb-2">{editingNoteId ? 'Edit Note' : 'Add Note'}</h2>
-              <p className="text-xs text-gray-600 mb-3">Track changes in diet, exercise, or lifestyle</p>
+              <h2 className={`text-xl font-bold ${textPrimary} mb-2`}>{editingNoteId ? 'Edit Note' : 'Add Note'}</h2>
+              <p className={`text-xs ${textSecondary} mb-3`}>Track changes in diet, exercise, or lifestyle</p>
               
-              <textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 h-32 resize-none text-sm mb-4" placeholder="Started intermittent fasting, new workout routine, stress management..." autoFocus />
+              <textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 h-32 resize-none text-sm mb-4`} placeholder="Started intermittent fasting, new workout routine, stress management..." autoFocus />
               
               <div className="flex space-x-2">
                 <button onClick={handleAddNote} className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition text-sm">
                   {editingNoteId ? 'Update' : 'Save'}
                 </button>
-                <button onClick={() => { setShowNoteModal(false); setNewNote(''); setEditingNoteId(null); }} className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg font-medium hover:bg-gray-300 transition text-sm">Cancel</button>
+                <button onClick={() => { setShowNoteModal(false); setNewNote(''); setEditingNoteId(null); }} className={`flex-1 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} ${textPrimary} py-2 rounded-lg font-medium hover:bg-opacity-80 transition text-sm`}>Cancel</button>
               </div>
             </div>
           </div>
@@ -1284,21 +1321,21 @@ const metrics = {
 
       {showDisclaimer && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+          <div className={`${bgCard} rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto`}>
             <div className="p-6">
               <div className="flex items-center space-x-2 mb-4">
                 <AlertCircle className="w-6 h-6 text-yellow-600" />
-                <h2 className="text-xl font-bold text-gray-800">Health Calculations Disclaimer</h2>
+                <h2 className={`text-xl font-bold ${textPrimary}`}>Health Calculations Disclaimer</h2>
               </div>
               
-              <div className="space-y-3 text-sm text-gray-700">
+              <div className={`space-y-3 text-sm ${textPrimary}`}>
                 <p className="font-semibold">⚠️ For Educational Purposes Only</p>
                 
                 <p>This app calculates health metrics including BMI, body fat percentage, muscle mass, bone mass, body water percentage, basal metabolic rate (BMR), and visceral fat levels using standardized formulas and estimations.</p>
                 
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
-                  <p className="font-semibold text-yellow-800">Important Limitations:</p>
-                  <ul className="list-disc ml-5 mt-2 space-y-1 text-yellow-900">
+                <div className={`${darkMode ? 'bg-yellow-900 border-yellow-700' : 'bg-yellow-50 border-yellow-400'} border-l-4 p-3 rounded`}>
+                  <p className={`font-semibold ${darkMode ? 'text-yellow-400' : 'text-yellow-800'}`}>Important Limitations:</p>
+                  <ul className={`list-disc ml-5 mt-2 space-y-1 ${darkMode ? 'text-yellow-300' : 'text-yellow-900'}`}>
                     <li>These are estimates based on population averages and may not accurately reflect your individual body composition</li>
                     <li>Results can vary significantly based on factors like hydration, muscle density, bone density, and body structure</li>
                     <li>Professional body composition analysis uses specialized equipment and is much more accurate</li>
@@ -1320,7 +1357,7 @@ const metrics = {
                 <p className="font-semibold">Steps Calorie Calculation:</p>
                 <p>Calories burned from steps are estimated using the formula: steps × 0.04 × (weight ÷ 150). This assumes approximately 80-100 calories per 2,000 steps for a 150lb person, adjusted for your current weight. Actual calories burned vary based on walking speed, terrain, fitness level, and individual metabolism.</p>
                 
-                <p className="text-xs text-gray-600 italic mt-4">By using this app, you acknowledge that all calculations are approximations for tracking trends over time, not precise medical measurements.</p>
+                <p className={`text-xs ${textSecondary} italic mt-4`}>By using this app, you acknowledge that all calculations are approximations for tracking trends over time, not precise medical measurements.</p>
               </div>
               
               <button onClick={() => setShowDisclaimer(false)} className="w-full mt-4 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition">I Understand</button>
@@ -1331,11 +1368,11 @@ const metrics = {
 
       {showWeeklyHistory && selectedWeeklyMetric && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+          <div className={`${bgCard} rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto`}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-800">{metrics[selectedWeeklyMetric].label} History</h2>
-                <button onClick={() => setShowWeeklyHistory(false)} className="text-gray-500 hover:text-gray-700">
+                <h2 className={`text-xl font-bold ${textPrimary}`}>{metrics[selectedWeeklyMetric].label} History</h2>
+                <button onClick={() => setShowWeeklyHistory(false)} className={textSecondary + " hover:text-gray-700"}>
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -1344,24 +1381,24 @@ const metrics = {
               
               <div className="space-y-3">
                 {weeklyTrends.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">No weekly data yet. Add more weight entries to see trends!</p>
+                  <p className={`text-center ${textSecondary} py-8`}>No weekly data yet. Add more weight entries to see trends!</p>
                 ) : (
                   weeklyTrends.slice().reverse().map((week, index) => {
                     const weekNum = weeklyTrends.length - index;
                     const isCurrentWeek = index === 0;
                     return (
-                      <div key={index} className={`${isCurrentWeek ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4`}>
+                      <div key={index} className={`${isCurrentWeek ? (darkMode ? 'bg-blue-900 border-blue-700' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200') : (darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200')} rounded-lg p-4 border-2`}>
                         <div className="flex justify-between items-center">
                           <div>
-                            <div className="text-sm font-semibold text-gray-800">
+                            <div className={`text-sm font-semibold ${textPrimary}`}>
                               {isCurrentWeek ? '📍 Current Week' : `Week ${weekNum}`}
                             </div>
-                            <div className="text-xs text-gray-600">{week.weekStart} - {week.weekEnd}</div>
+                            <div className={`text-xs ${textSecondary}`}>{week.weekStart} - {week.weekEnd}</div>
                           </div>
                           <div className="text-right">
-                            <div className={`text-2xl font-bold ${isCurrentWeek ? 'text-blue-600' : 'text-gray-800'}`}>
+                            <div className={`text-2xl font-bold ${isCurrentWeek ? 'text-blue-600' : textPrimary}`}>
                               {week[selectedWeeklyMetric]} 
-                              <span className="text-sm font-normal text-gray-500 ml-1">
+                              <span className={`text-sm font-normal ${textSecondary} ml-1`}>
                                 {metrics[selectedWeeklyMetric].unit}
                               </span>
                             </div>
@@ -1376,7 +1413,7 @@ const metrics = {
                                   } else if (diff < 0) {
                                     return <span className="text-green-500">▼ {diff.toFixed(1)}</span>;
                                   } else {
-                                    return <span className="text-gray-500">— No change</span>;
+                                    return <span className={textSecondary}>— No change</span>;
                                   }
                                 })()}
                               </div>
@@ -1390,17 +1427,17 @@ const metrics = {
               </div>
 
               {weeklyTrends.length > 0 && (
-                <div className="mt-6 pt-4 border-t border-gray-200">
-                  <h3 className="font-semibold text-gray-700 mb-3 text-sm">Overall Stats</h3>
+                <div className={`mt-6 pt-4 border-t ${borderColor}`}>
+                  <h3 className={`font-semibold ${textPrimary} mb-3 text-sm`}>Overall Stats</h3>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-green-50 rounded-lg p-3">
-                      <div className="text-xs text-gray-600">Lowest</div>
+                    <div className={`${darkMode ? 'bg-green-900' : 'bg-green-50'} rounded-lg p-3`}>
+                      <div className={`text-xs ${textSecondary}`}>Lowest</div>
                       <div className="text-lg font-bold text-green-600">
                         {Math.min(...weeklyTrends.map(w => w[selectedWeeklyMetric])).toFixed(1)} {metrics[selectedWeeklyMetric].unit}
                       </div>
                     </div>
-                    <div className="bg-purple-50 rounded-lg p-3">
-                      <div className="text-xs text-gray-600">Highest</div>
+                    <div className={`${darkMode ? 'bg-purple-900' : 'bg-purple-50'} rounded-lg p-3`}>
+                      <div className={`text-xs ${textSecondary}`}>Highest</div>
                       <div className="text-lg font-bold text-purple-600">
                         {Math.max(...weeklyTrends.map(w => w[selectedWeeklyMetric])).toFixed(1)} {metrics[selectedWeeklyMetric].unit}
                       </div>
@@ -1415,28 +1452,28 @@ const metrics = {
 
       {showStepsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+          <div className={`${bgCard} rounded-xl shadow-2xl max-w-md w-full`}>
             <div className="p-5">
-              <h2 className="text-xl font-bold text-gray-800 mb-3">{editingStepsId ? 'Edit Steps' : 'Log Steps'}</h2>
+              <h2 className={`text-xl font-bold ${textPrimary} mb-3`}>{editingStepsId ? 'Edit Steps' : 'Log Steps'}</h2>
               
               <div className="space-y-3 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Date</label>
                   <input 
                     type="date" 
                     value={newSteps.date} 
                     onChange={(e) => setNewSteps({...newSteps, date: e.target.value})} 
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" 
+                    className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 text-sm`}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Step Count</label>
+                  <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Step Count</label>
                   <input 
                     type="number" 
                     value={newSteps.count} 
                     onChange={(e) => setNewSteps({...newSteps, count: e.target.value})} 
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" 
+                    className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 text-sm`}
                     placeholder="10000" 
                     autoFocus 
                   />
@@ -1448,11 +1485,11 @@ const metrics = {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+                  <label className={`block text-sm font-medium ${textPrimary} mb-1`}>Notes (optional)</label>
                   <textarea 
                     value={newSteps.notes} 
                     onChange={(e) => setNewSteps({...newSteps, notes: e.target.value})} 
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 h-16 resize-none text-sm" 
+                    className={`w-full border ${inputBorder} ${inputBg} ${textPrimary} rounded-lg px-3 py-2 h-16 resize-none text-sm`}
                     placeholder="Morning walk, hiking trip..." 
                   />
                 </div>
@@ -1462,7 +1499,7 @@ const metrics = {
                 <button onClick={handleAddSteps} className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition text-sm">
                   {editingStepsId ? 'Update' : 'Save'}
                 </button>
-                <button onClick={() => { setShowStepsModal(false); setNewSteps({ date: new Date().toISOString().split('T')[0], count: '', notes: '' }); setEditingStepsId(null); }} className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg font-medium hover:bg-gray-300 transition text-sm">Cancel</button>
+                <button onClick={() => { setShowStepsModal(false); setNewSteps({ date: new Date().toISOString().split('T')[0], count: '', notes: '' }); setEditingStepsId(null); }} className={`flex-1 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} ${textPrimary} py-2 rounded-lg font-medium hover:bg-opacity-80 transition text-sm`}>Cancel</button>
               </div>
             </div>
           </div>
