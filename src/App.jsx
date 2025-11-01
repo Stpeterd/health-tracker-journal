@@ -597,7 +597,7 @@ const metrics = {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center space-x-2 md:space-x-3">
               <Scale className="w-6 h-6 md:w-8 md:h-8" />
-             <h1 className="text-lg md:text-2xl font-bold">🔥 TEST VERSION 123 🔥</h1>
+              <h1 className="text-lg md:text-2xl font-bold">Health Tracker Journal</h1>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <button 
