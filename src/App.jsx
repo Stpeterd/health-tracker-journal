@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Scale, TrendingUp, TrendingDown, Calendar, Plus, Users, Activity, Download, Upload, FileText, Trash2, Edit2, AlertCircle, Droplets, Dumbbell, Utensils, Check, Sparkles, Moon, Sun } from 'lucide-react';
-// versoin 1
+
 const HealthTrackerApp = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedMetric, setSelectedMetric] = useState('weight');
